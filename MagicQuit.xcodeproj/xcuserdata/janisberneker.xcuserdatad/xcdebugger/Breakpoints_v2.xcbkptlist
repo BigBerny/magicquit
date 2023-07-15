@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Bucket
+   uuid = "F37D125D-453E-4F4A-AA7B-26EAE11BC988"
+   type = "1"
+   version = "2.0">
+   <Breakpoints>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "EBF62E16-DCB3-4DB6-A2EF-B9BB07408438"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "MagicQuit/ContentView.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "11"
+            endingLineNumber = "11"
+            landmarkName = "init()"
+            landmarkType = "7">
+            <Locations>
+               <Location
+                  uuid = "EBF62E16-DCB3-4DB6-A2EF-B9BB07408438 - bdd5db3eef3d9c0d"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "MagicQuit.RunningAppsManager.__allocating_init() -&gt; MagicQuit.RunningAppsManager"
+                  moduleName = "MagicQuit"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/janisberneker/Development/magicquit/MagicQuit/MagicQuit/ContentView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "0"
+                  endingLineNumber = "0"
+                  offsetFromSymbolStart = "16">
+               </Location>
+               <Location
+                  uuid = "EBF62E16-DCB3-4DB6-A2EF-B9BB07408438 - be9ab87d9f64a3f3"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "MagicQuit.RunningAppsManager.init() -&gt; MagicQuit.RunningAppsManager"
+                  moduleName = "MagicQuit"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/janisberneker/Development/magicquit/MagicQuit/MagicQuit/ContentView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "6"
+                  endingLineNumber = "6"
+                  offsetFromSymbolStart = "204">
+               </Location>
+               <Location
+                  uuid = "EBF62E16-DCB3-4DB6-A2EF-B9BB07408438 - be9ab87d9f64a3f3"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "MagicQuit.RunningAppsManager.init() -&gt; MagicQuit.RunningAppsManager"
+                  moduleName = "MagicQuit"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/janisberneker/Development/magicquit/MagicQuit/MagicQuit/ContentView.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "6"
+                  endingLineNumber = "6"
+                  offsetFromSymbolStart = "380">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+   </Breakpoints>
+</Bucket>
