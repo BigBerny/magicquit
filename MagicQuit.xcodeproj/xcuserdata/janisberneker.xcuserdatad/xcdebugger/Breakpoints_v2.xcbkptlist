@@ -14,14 +14,14 @@
             filePath = "MagicQuit/ContentView.swift"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "11"
-            endingLineNumber = "11"
+            startingLineNumber = "19"
+            endingLineNumber = "19"
             landmarkName = "init()"
             landmarkType = "7">
             <Locations>
                <Location
                   uuid = "EBF62E16-DCB3-4DB6-A2EF-B9BB07408438 - bdd5db3eef3d9c0d"
-                  shouldBeEnabled = "Yes"
+                  shouldBeEnabled = "No"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
                   symbolName = "MagicQuit.RunningAppsManager.__allocating_init() -&gt; MagicQuit.RunningAppsManager"
@@ -36,7 +36,7 @@
                </Location>
                <Location
                   uuid = "EBF62E16-DCB3-4DB6-A2EF-B9BB07408438 - be9ab87d9f64a3f3"
-                  shouldBeEnabled = "Yes"
+                  shouldBeEnabled = "No"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
                   symbolName = "MagicQuit.RunningAppsManager.init() -&gt; MagicQuit.RunningAppsManager"
@@ -51,7 +51,7 @@
                </Location>
                <Location
                   uuid = "EBF62E16-DCB3-4DB6-A2EF-B9BB07408438 - be9ab87d9f64a3f3"
-                  shouldBeEnabled = "Yes"
+                  shouldBeEnabled = "No"
                   ignoreCount = "0"
                   continueAfterRunningActions = "No"
                   symbolName = "MagicQuit.RunningAppsManager.init() -&gt; MagicQuit.RunningAppsManager"
@@ -65,6 +65,22 @@
                   offsetFromSymbolStart = "380">
                </Location>
             </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "CB254D07-38BD-46F7-9CF2-175812E3298E"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "MagicQuit/MenuBarController.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "17"
+            endingLineNumber = "17"
+            landmarkName = "init(_:)"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

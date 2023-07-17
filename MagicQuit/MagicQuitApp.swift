@@ -10,8 +10,9 @@ import SwiftUI
 @main
 struct MagicQuitApp: App {
     var body: some Scene {
-        WindowGroup {
+        MenuBarExtra("MagicQuit", systemImage: "xmark.square.fill") {
             ContentView()
         }
+        .menuBarExtraStyle(.window)
     }
 }
