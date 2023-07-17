@@ -83,5 +83,68 @@
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
+      <BreakpointProxy
+         BreakpointExtensionID = "Xcode.Breakpoint.FileBreakpoint">
+         <BreakpointContent
+            uuid = "793D2B48-1C23-41EF-A0A8-55440C06A09D"
+            shouldBeEnabled = "No"
+            ignoreCount = "0"
+            continueAfterRunningActions = "No"
+            filePath = "MagicQuit/MagicQuitApp.swift"
+            startingColumnNumber = "9223372036854775807"
+            endingColumnNumber = "9223372036854775807"
+            startingLineNumber = "15"
+            endingLineNumber = "15"
+            landmarkName = "body"
+            landmarkType = "24">
+            <Locations>
+               <Location
+                  uuid = "793D2B48-1C23-41EF-A0A8-55440C06A09D - 8289362b95806d7b"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #1 () -&gt; MagicQuit.ContentView in MagicQuit.MagicQuitApp.body.getter : some"
+                  moduleName = "MagicQuit"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/janisberneker/Development/magicquit/MagicQuit/MagicQuitApp.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "15"
+                  endingLineNumber = "15"
+                  offsetFromSymbolStart = "284">
+               </Location>
+               <Location
+                  uuid = "793D2B48-1C23-41EF-A0A8-55440C06A09D - d62cb99e2c4e2fde"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #2 () -&gt; SwiftUI.Image in MagicQuit.MagicQuitApp.body.getter : some"
+                  moduleName = "MagicQuit"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/janisberneker/Development/magicquit/MagicQuit/MagicQuitApp.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "21"
+                  endingLineNumber = "21"
+                  offsetFromSymbolStart = "68">
+               </Location>
+               <Location
+                  uuid = "793D2B48-1C23-41EF-A0A8-55440C06A09D - d62cb99e2c4e2e84"
+                  shouldBeEnabled = "Yes"
+                  ignoreCount = "0"
+                  continueAfterRunningActions = "No"
+                  symbolName = "closure #2 () -&gt; SwiftUI.Image in MagicQuit.MagicQuitApp.body.getter : some"
+                  moduleName = "MagicQuit"
+                  usesParentBreakpointCondition = "Yes"
+                  urlString = "file:///Users/janisberneker/Development/magicquit/MagicQuit/MagicQuitApp.swift"
+                  startingColumnNumber = "9223372036854775807"
+                  endingColumnNumber = "9223372036854775807"
+                  startingLineNumber = "15"
+                  endingLineNumber = "15"
+                  offsetFromSymbolStart = "396">
+               </Location>
+            </Locations>
+         </BreakpointContent>
+      </BreakpointProxy>
    </Breakpoints>
 </Bucket>

@@ -63,11 +63,17 @@ class RunningAppsManager: ObservableObject {
     private func addCurrentRunningApps() {
         let workspace = NSWorkspace.shared
         let apps = workspace.runningApplications
+        let currentDate = Date()
 
+        // Add new apps to runningApps
+        let excludedIdentifiers = ["com.apple.loginwindow", "com.apple.systemuiserver", "com.apple.dock", "com.apple.finder"]
         for app in apps {
-            if app.activationPolicy == .regular {
-                DispatchQueue.main.async {
-                    self.runningApps[app] = Date()
+            if app.activationPolicy == .regular, self.runningApps[app] == nil {
+                let currentAppBundleIdentifier = Bundle.main.bundleIdentifier
+                if app.bundleIdentifier != currentAppBundleIdentifier && !excludedIdentifiers.contains(app.bundleIdentifier ?? "") {
+                    DispatchQueue.main.async {
+                        self.runningApps[app] = currentDate
+                    }
                 }
             }
         }
@@ -87,21 +93,8 @@ class RunningAppsManager: ObservableObject {
         if let activeApp = workspace.frontmostApplication {
             runningApps[activeApp] = currentDate
         }
-
-        // Add new apps to runningApps
-        let excludedIdentifiers = ["com.apple.loginwindow", "com.apple.systemuiserver", "com.apple.dock", "com.apple.finder"]
-
-        // Add new apps to runningApps
-        for app in apps {
-            if app.activationPolicy == .regular, self.runningApps[app] == nil {
-                let currentAppBundleIdentifier = Bundle.main.bundleIdentifier
-                if app.bundleIdentifier != currentAppBundleIdentifier && !excludedIdentifiers.contains(app.bundleIdentifier ?? "") {
-                    DispatchQueue.main.async {
-                        self.runningApps[app] = currentDate
-                    }
-                }
-            }
-        }
+        
+        addCurrentRunningApps()
         
         // Check if any apps have been running for more than hoursUntilClose and terminate them
         let hourInSeconds = 3600
@@ -128,45 +121,51 @@ struct ContentView: View {
     
     var body: some View {
         VStack {
-            LazyVStack(spacing: 0) {
-                ForEach(Array(manager.runningApps).sorted(by: { $0.0.localizedName! < $1.0.localizedName! }), id: \.0) { app in
-                    AppRow(app: app, manager: manager)
-                }
-                Divider().padding(.vertical, 10)
-                    
-                Button(action: {
-                        NSApplication.shared.terminate(self)
-                    }) {
-                        HStack {
-                            Text("Quit MagicQuit")
-                                .frame(maxWidth: .infinity, alignment: .leading) // aligns text to the leading edge
-                                .padding(5) // adds padding to the leading edge of the text
-                                .foregroundColor(isHovered ? Color.white : Color.primary) // Change text color to white when hovering
-                            
-                            Spacer()
-                        }
-                        .frame(maxWidth: .infinity)
-                        //.padding(.vertical, 10) // adds vertical padding to the entire button
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .background(
-                        Group {
-                            if isHovered {
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(Color.blue)
-                            } else {
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(Color.clear)
-                            }
-                        }
-                    )
-                    .onHover { hovering in
-                        isHovered = hovering
+            VStack(spacing: 0) {
+                    ForEach(Array(manager.runningApps).sorted(by: { $0.0.localizedName! < $1.0.localizedName! }), id: \.0) { app in
+                        AppRow(app: app, manager: manager)
                     }
             }
-        }
+            .padding(.horizontal, 10)
+            .padding(.top, 5)
+            .padding(.bottom, 0)
+            Divider()
+                .padding(.horizontal, 10)
+                .padding(.vertical, 0)
+            Button(action: {
+                    NSApplication.shared.terminate(self)
+                }) {
+                    HStack {
+                        Text("Quit MagicQuit")
+                            .frame(maxWidth: .infinity, alignment: .leading) // aligns text to the leading edge
+                            .padding(.horizontal, 10) // adds padding to the leading edge of the text
+                            .padding(.vertical, 5)
+                            .foregroundColor(isHovered ? Color.white : Color.primary) // Change text color to white when hovering
+                        
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity)
+                    //.padding(.vertical, 10) // adds vertical padding to the entire button
+                }
+                .buttonStyle(PlainButtonStyle())
+                .background(
+                    Group {
+                        if isHovered {
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color.blue)
+                        } else {
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color.clear)
+                        }
+                    }
+                )
+                .onHover { hovering in
+                    isHovered = hovering
+                }
+
+            }
         .frame(width: 300)
-        .padding(10)
+        .padding(5)
     }
 }
 
