@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AppKit
 
 let runningAppsManager = RunningAppsManager()
 
