@@ -60,24 +60,30 @@ class RunningAppsManager: ObservableObject {
         }
     }
     
+    private func isBlockedApp(_ app: NSRunningApplication) -> Bool {
+        let currentAppBundleIdentifier = Bundle.main.bundleIdentifier
+        let excludedIdentifiers = ["com.apple.loginwindow", "com.apple.systemuiserver", "com.apple.dock", "com.apple.finder"]
+        if app.activationPolicy == .regular && app.bundleIdentifier != currentAppBundleIdentifier && !excludedIdentifiers.contains(app.bundleIdentifier ?? "") {
+            return false
+        }
+        return true
+    }
+
     private func addCurrentRunningApps() {
         let workspace = NSWorkspace.shared
         let apps = workspace.runningApplications
         let currentDate = Date()
 
         // Add new apps to runningApps
-        let excludedIdentifiers = ["com.apple.loginwindow", "com.apple.systemuiserver", "com.apple.dock", "com.apple.finder"]
         for app in apps {
-            if app.activationPolicy == .regular, self.runningApps[app] == nil {
-                let currentAppBundleIdentifier = Bundle.main.bundleIdentifier
-                if app.bundleIdentifier != currentAppBundleIdentifier && !excludedIdentifiers.contains(app.bundleIdentifier ?? "") {
-                    DispatchQueue.main.async {
-                        self.runningApps[app] = currentDate
-                    }
+            if !isBlockedApp(app), self.runningApps[app] == nil {
+                DispatchQueue.main.async {
+                    self.runningApps[app] = currentDate
                 }
             }
         }
     }
+
 
     private func checkOpenApps() {
         print("checkOpenApps")
@@ -90,7 +96,7 @@ class RunningAppsManager: ObservableObject {
         runningApps = runningApps.filter { currentApps.contains($0.key) }
 
         // Set date of the currently active app to currentDate
-        if let activeApp = workspace.frontmostApplication {
+        if let activeApp = workspace.frontmostApplication, !isBlockedApp(activeApp) {
             runningApps[activeApp] = currentDate
         }
         
@@ -114,10 +120,14 @@ class RunningAppsManager: ObservableObject {
 
 struct ContentView: View {
     static let toggleStatusKey = "janisberneker.MagicQuit.toggleStatus"
-    @StateObject private var manager = RunningAppsManager()
     @State private var isHovered = false
     //@State private var toggleStatus: [String: Bool] = [:]
     //@AppStorage(ContentView.toggleStatusKey) private var toggleStatusData: Data = Data()
+    @ObservedObject private var manager: RunningAppsManager
+
+    init(manager: RunningAppsManager) {
+        self.manager = manager
+    }
     
     var body: some View {
         VStack {
@@ -245,6 +255,6 @@ struct AppRow: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        ContentView(manager: runningAppsManager)
     }
 }

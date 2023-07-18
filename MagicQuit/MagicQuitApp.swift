@@ -7,11 +7,13 @@
 
 import SwiftUI
 
+let runningAppsManager = RunningAppsManager()
+
 @main
 struct MagicQuitApp: App {
     var body: some Scene {
         MenuBarExtra {
-            ContentView()
+            ContentView(manager: runningAppsManager)
         } label: {
             let image: NSImage = {
                 $0.size.height = 18
