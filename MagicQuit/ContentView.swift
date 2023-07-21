@@ -1,14 +1,14 @@
 import SwiftUI
 import AppKit
 import Combine
-import UserNotifications
+import LaunchAtLogin
 
 
 class RunningAppsManager: ObservableObject {
     @Published var runningApps: [NSRunningApplication: Date] = [:]
     @Published var appsToClose: [String] = []
     private var timer: Timer?
-    static let hoursUntilClose: Int = 1
+    @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 24
     @Published var toggleStatus: [String: Bool] = [:] {
         willSet {
             objectWillChange.send()
@@ -62,7 +62,15 @@ class RunningAppsManager: ObservableObject {
     
     private func isBlockedApp(_ app: NSRunningApplication) -> Bool {
         let currentAppBundleIdentifier = Bundle.main.bundleIdentifier
-        let excludedIdentifiers = ["com.apple.loginwindow", "com.apple.systemuiserver", "com.apple.dock", "com.apple.finder"]
+        let excludedIdentifiers = ["com.apple.loginwindow",
+                                   "com.apple.systemuiserver",
+                                   "com.apple.dock",
+                                   "com.apple.finder",
+                                   "com.apple.coreautha",
+                                   "com.apple.Spotlight",
+                                   "com.apple.notificationcenterui",
+                                   "com.apple.Siri"
+                                  ]
         if app.activationPolicy == .regular && app.bundleIdentifier != currentAppBundleIdentifier && !excludedIdentifiers.contains(app.bundleIdentifier ?? "") {
             return false
         }
@@ -106,11 +114,9 @@ class RunningAppsManager: ObservableObject {
         let hourInSeconds = 3600
         for (app, startDate) in runningApps {
             let elapsedTime = currentDate.timeIntervalSince(startDate)
-            if elapsedTime > Double(RunningAppsManager.hoursUntilClose * hourInSeconds), app.isFinishedLaunching, toggleStatus[app.localizedName ?? ""] ?? true {
-                print("\(app.localizedName ?? "") will terminate")
+            if elapsedTime > Double(hoursUntilClose * hourInSeconds), app.isFinishedLaunching, toggleStatus[app.localizedName ?? ""] ?? true {
                 let isTerminated = app.terminate()
                 if isTerminated {
-                    print("\(app.localizedName ?? "") terminated")
                     runningApps[app] = nil
                 }
             }
@@ -149,9 +155,14 @@ struct ContentView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
             Button(action: {
-                settingsWindowController = SettingsWindowController(rootView: SettingsView())
-                NSApp.activate(ignoringOtherApps: true) // Activate the application
-                settingsWindowController?.showWindow(nil)
+                if let currentSettingsWindowController = SettingsWindowController.current {
+                    currentSettingsWindowController.window?.makeKeyAndOrderFront(nil)
+                    NSApp.activate(ignoringOtherApps: true)
+                } else {
+                    settingsWindowController = SettingsWindowController(rootView: SettingsView())
+                    NSApp.activate(ignoringOtherApps: true) // Activate the application
+                    settingsWindowController?.showWindow(nil)
+                }
             }) {
                 HStack {
                     Text("Settings")
@@ -222,6 +233,7 @@ struct ContentView: View {
 struct AppRow: View {
     var app: (key: NSRunningApplication, value: Date)
     @ObservedObject var manager: RunningAppsManager
+    @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 24
     
     var isOn: Binding<Bool> {
         Binding<Bool>(
@@ -234,7 +246,7 @@ struct AppRow: View {
     }
     
     var body: some View {
-        let secondsUntilClose = (RunningAppsManager.hoursUntilClose * 60 * 60) - Int(Date().timeIntervalSince(app.value))
+        let secondsUntilClose = (hoursUntilClose * 60 * 60) - Int(Date().timeIntervalSince(app.value))
         let isLessThanHour = secondsUntilClose < 3600
         HStack {
             Toggle(isOn: isOn) {
@@ -259,7 +271,7 @@ struct AppRow: View {
             
             Spacer() // Add a spacer to push apart the two Text views
             if isOn.wrappedValue {
-                let secondsUntilClose = (RunningAppsManager.hoursUntilClose * 60 * 60) - Int(Date().timeIntervalSince(app.value))
+                let secondsUntilClose = (hoursUntilClose * 60 * 60) - Int(Date().timeIntervalSince(app.value))
                 Text(formatTime(seconds: secondsUntilClose)).frame(alignment: .trailing)
                     .fontWeight(isLessThanHour ? .bold : .regular)
                     .alignmentGuide(.trailing, computeValue: { dimension in
@@ -303,23 +315,72 @@ struct AppRow: View {
 }
 
 class SettingsWindowController: NSWindowController {
+    static var current: SettingsWindowController?
+    
     convenience init(rootView: SettingsView) {
-        let hostingController = NSHostingController(rootView: rootView.frame(width: 400, height: 200))
+        let hostingController = NSHostingController(rootView: rootView.frame(width: 400, height: 400))
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Settings"
         self.init(window: window)
+        SettingsWindowController.current = self
+    }
+    
+    deinit {
+        SettingsWindowController.current = nil
     }
 }
 
 struct SettingsView: View {
+    @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 24
+    
+    var appVersion: String {
+        if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            return version
+        }
+        return ""
+    }
+    
+    var appBuildNumber: String {
+        if let buildNumber = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
+            return buildNumber
+        }
+        return ""
+    }
+    
     var body: some View {
         VStack {
-            Text("Settings")
-                .font(.largeTitle)
+            Image("Image")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 100, height: 100)
                 .padding()
+            Text("MagicQuit")
+                .font(.title)
             
-            Text("Settings content goes here")
-                .padding()
+            Text("\(appVersion) (\(appBuildNumber))")
+            
+            Divider().padding()
+            
+            VStack(alignment: .leading) {
+                HStack {
+                    Text("Startup:")
+                        .frame(width: 100, alignment: .trailing)
+                        .padding(.trailing, 10)
+                    LaunchAtLogin.Toggle()
+                }
+                HStack {
+                    Text("Idle time:")
+                        .frame(width: 100, alignment: .trailing)
+                        .padding(.trailing, 10)
+                    Stepper(value: $hoursUntilClose, in: 1...72) {
+                        Text("\(hoursUntilClose)h")
+                    }
+                    Text("until quitting")
+                        .padding(.trailing, 0)
+                }
+            }
+            .padding()
+
         }
     }
 }

@@ -14,6 +14,7 @@
 		2517733D2A4F80980047DDA5 /* MagicQuitTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2517733C2A4F80980047DDA5 /* MagicQuitTests.swift */; };
 		251773472A4F80980047DDA5 /* MagicQuitUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251773462A4F80980047DDA5 /* MagicQuitUITests.swift */; };
 		251773492A4F80980047DDA5 /* MagicQuitUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251773482A4F80980047DDA5 /* MagicQuitUITestsLaunchTests.swift */; };
+		25B1842E2A69E49D007319B4 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 25B1842D2A69E49D007319B4 /* LaunchAtLogin */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -52,6 +53,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				25B1842E2A69E49D007319B4 /* LaunchAtLogin in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -145,6 +147,9 @@
 			dependencies = (
 			);
 			name = MagicQuit;
+			packageProductDependencies = (
+				25B1842D2A69E49D007319B4 /* LaunchAtLogin */,
+			);
 			productName = MagicQuit;
 			productReference = 251773272A4F80970047DDA5 /* MagicQuit.app */;
 			productType = "com.apple.product-type.application";
@@ -217,6 +222,9 @@
 				Base,
 			);
 			mainGroup = 2517731E2A4F80970047DDA5;
+			packageReferences = (
+				25B1842C2A69E49D007319B4 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
+			);
 			productRefGroup = 251773282A4F80970047DDA5 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -420,12 +428,14 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_ASSET_PATHS = "\"MagicQuit/Preview Content\"";
 				DEVELOPMENT_TEAM = NS3G7687Y3;
-				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MagicQuit;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Needed to close apps";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -433,7 +443,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = janisberneker.MagicQuit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -451,12 +461,14 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_ASSET_PATHS = "\"MagicQuit/Preview Content\"";
 				DEVELOPMENT_TEAM = NS3G7687Y3;
-				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MagicQuit;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "Needed to close apps";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -464,7 +476,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = janisberneker.MagicQuit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -584,6 +596,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		25B1842C2A69E49D007319B4 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sindresorhus/LaunchAtLogin-Modern";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		25B1842D2A69E49D007319B4 /* LaunchAtLogin */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 25B1842C2A69E49D007319B4 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
+			productName = LaunchAtLogin;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 2517731F2A4F80970047DDA5 /* Project object */;
 }
