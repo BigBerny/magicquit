@@ -14,7 +14,7 @@ class RunningAppsManager: ObservableObject {
             objectWillChange.send()
         }
     }
-    @AppStorage("janisberneker.MagicQuit.toggleStatus") var toggleStatusData: Data = Data()
+    @AppStorage("com.MagicQuit.toggleStatus") var toggleStatusData: Data = Data()
     
     init() {
         syncToggleStatus()
@@ -125,7 +125,7 @@ class RunningAppsManager: ObservableObject {
 }
 
 struct ContentView: View {
-    static let toggleStatusKey = "janisberneker.MagicQuit.toggleStatus"
+    static let toggleStatusKey = "com.MagicQuit.toggleStatus"
     enum HoveredButton: Hashable {
         case quit
         case settings
