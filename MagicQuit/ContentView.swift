@@ -238,7 +238,8 @@ struct ContentView: View {
 struct AppRow: View {
     var app: (key: NSRunningApplication, value: Date)
     @ObservedObject var manager: RunningAppsManager
-    @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 24
+    @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 12
+    @AppStorage("showCloseButton") var showCloseButton: Bool = false
     
     var shouldQuitCheckbox: Binding<Bool> {
         Binding<Bool>(
@@ -253,7 +254,6 @@ struct AppRow: View {
     var body: some View {
         let secondsUntilClose = (hoursUntilClose * 60 * 60) - Int(Date().timeIntervalSince(app.value))
         let isLessThanHour = secondsUntilClose < 3600
-        let showCloseButton = false
         
         HStack {
             Toggle(isOn: shouldQuitCheckbox) {
@@ -327,7 +327,7 @@ class SettingsWindowController: NSWindowController {
     static var current: SettingsWindowController?
     
     convenience init(rootView: SettingsView) {
-        let hostingController = NSHostingController(rootView: rootView.frame(width: 400, height: 400))
+        let hostingController = NSHostingController(rootView: rootView.frame(width: 600, height: 400))
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Settings"
         self.init(window: window)
@@ -341,6 +341,7 @@ class SettingsWindowController: NSWindowController {
 
 struct SettingsView: View {
     @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 24
+    @AppStorage("showCloseButton") var showCloseButton: Bool = false
     
     var appVersion: String {
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
@@ -365,6 +366,7 @@ struct SettingsView: View {
                 .padding()
             Text("MagicQuit")
                 .font(.title)
+                .padding()
             
             Text("\(appVersion) (\(appBuildNumber))")
             
@@ -374,18 +376,26 @@ struct SettingsView: View {
                 HStack {
                     Text("Startup:")
                         .frame(width: 100, alignment: .trailing)
-                        .padding(.trailing, 10)
+                        .padding(.trailing, 20)
                     LaunchAtLogin.Toggle()
                 }
                 HStack {
                     Text("Idle time:")
                         .frame(width: 100, alignment: .trailing)
-                        .padding(.trailing, 10)
+                        .padding(.trailing, 20)
                     Stepper(value: $hoursUntilClose, in: 1...72) {
                         Text("\(hoursUntilClose)h")
                     }
                     Text("until quitting")
                         .padding(.trailing, 0)
+                }
+                HStack {
+                    Text("Quit button:")
+                        .frame(width: 100, alignment: .trailing)
+                        .padding(.trailing, 20)
+                    Toggle(isOn: $showCloseButton) {
+                        Text("Shows button to quit apps manually")
+                    }
                 }
             }
             .padding()
