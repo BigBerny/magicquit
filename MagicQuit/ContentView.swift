@@ -2,13 +2,14 @@ import SwiftUI
 import AppKit
 import Combine
 import LaunchAtLogin
+import os.log
 
 
 class RunningAppsManager: ObservableObject {
     @Published var runningApps: [NSRunningApplication: Date] = [:]
     @Published var appsToClose: [String] = []
     private var timer: Timer?
-    @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 24
+    @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 8
     @Published var toggleStatus: [String: Bool] = [:] {
         willSet {
             objectWillChange.send()
@@ -16,19 +17,23 @@ class RunningAppsManager: ObservableObject {
     }
     @AppStorage("com.MagicQuit.toggleStatus") var toggleStatusData: Data = Data()
     
+    let log = OSLog(subsystem: Bundle.main.bundleIdentifier!, category: "RunningAppsManager")
+    
     init() {
         syncToggleStatus()
         addCurrentRunningApps()
         
-        print("init")
+        os_log("Init", log: log, type: .debug)
         let didDeactivateObserver = NSWorkspace.shared.notificationCenter
         didDeactivateObserver.addObserver(forName: NSWorkspace.didDeactivateApplicationNotification,
                                           object: nil, // always NSWorkspace
                                           queue: OperationQueue.main) { (notification: Notification) in
-            print("didDeactivate")
             if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication {
-                DispatchQueue.main.async {
-                    self.runningApps[app] = Date()
+                os_log("didDeactivate: %{public}@", log: self.log, type: .debug, app.localizedName ?? "Unknown")
+                if !self.isBlockedApp(app) {
+                    DispatchQueue.main.async {
+                        self.runningApps[app] = Date()
+                    }
                 }
             }
         }
@@ -43,7 +48,7 @@ class RunningAppsManager: ObservableObject {
     }
     
     deinit {
-        print("RunningAppsManager is being deallocated")
+        os_log("RunningAppsManager is being deallocated", log: log, type: .debug)
     }
     
     // Synchronize toggleStatus with toggleStatusData
@@ -70,7 +75,7 @@ class RunningAppsManager: ObservableObject {
                                    "com.apple.Spotlight",
                                    "com.apple.notificationcenterui",
                                    "com.apple.Siri"
-                                  ]
+        ]
         if app.activationPolicy == .regular && app.bundleIdentifier != currentAppBundleIdentifier && !excludedIdentifiers.contains(app.bundleIdentifier ?? "") {
             return false
         }
@@ -94,7 +99,7 @@ class RunningAppsManager: ObservableObject {
     
     
     private func checkOpenApps() {
-        print("checkOpenApps")
+        os_log("checkOpenApps", log: log, type: .debug)
         let workspace = NSWorkspace.shared
         let apps = workspace.runningApplications
         let currentDate = Date()
@@ -235,7 +240,7 @@ struct AppRow: View {
     @ObservedObject var manager: RunningAppsManager
     @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 24
     
-    var isOn: Binding<Bool> {
+    var shouldQuitCheckbox: Binding<Bool> {
         Binding<Bool>(
             get: { manager.toggleStatus[app.key.localizedName ?? ""] ?? true },
             set: { newValue in
@@ -248,8 +253,10 @@ struct AppRow: View {
     var body: some View {
         let secondsUntilClose = (hoursUntilClose * 60 * 60) - Int(Date().timeIntervalSince(app.value))
         let isLessThanHour = secondsUntilClose < 3600
+        let showCloseButton = false
+        
         HStack {
-            Toggle(isOn: isOn) {
+            Toggle(isOn: shouldQuitCheckbox) {
                 EmptyView() // Empty view as we don't want to show any label
             }
             .toggleStyle(CheckboxToggleStyle())
@@ -267,10 +274,10 @@ struct AppRow: View {
                 .fontWeight(isLessThanHour ? .bold : .regular)
                 .lineLimit(1)  // Limit to one line
                 .truncationMode(.tail)
-                .foregroundColor(isOn.wrappedValue ? .primary : .gray) // Change the text color based on the toggle status
+                .foregroundColor(shouldQuitCheckbox.wrappedValue ? .primary : .gray) // Change the text color based on the toggle status
             
             Spacer() // Add a spacer to push apart the two Text views
-            if isOn.wrappedValue {
+            if shouldQuitCheckbox.wrappedValue {
                 let secondsUntilClose = (hoursUntilClose * 60 * 60) - Int(Date().timeIntervalSince(app.value))
                 Text(formatTime(seconds: secondsUntilClose)).frame(alignment: .trailing)
                     .fontWeight(isLessThanHour ? .bold : .regular)
@@ -287,17 +294,19 @@ struct AppRow: View {
             }
             .buttonStyle(PlainButtonStyle())
             .frame(alignment: .trailing)
-            //.foregroundColor(isOn.wrappedValue ? .primary : .gray) // Change the text color based on the toggle status
-            .disabled(!isOn.wrappedValue) // Disable the button if the checkbox is not checked
-            /*Button(action: {
-             // Close the app
-             app.key.terminate()
-             }) {
-             Image(systemName: "x.circle") // Use SF Symbols for the star icon
-             }
-             .buttonStyle(PlainButtonStyle())
-             .frame(alignment: .trailing)
-             .foregroundColor(isOn.wrappedValue ? .primary : .gray) // Change the text color based on the toggle status*/
+            .disabled(!shouldQuitCheckbox.wrappedValue) // Disable the button if the checkbox is not checked
+            if showCloseButton {
+                Button(action: {
+                    // Close the app
+                    app.key.terminate()
+                }) {
+                    Image(systemName: "x.circle") // Use SF Symbols for the star icon
+                }
+                .buttonStyle(PlainButtonStyle())
+                .frame(alignment: .trailing)
+                .disabled(!shouldQuitCheckbox.wrappedValue) // Disable the button if the checkbox is not checked
+            }
+            
         }
         .frame(maxWidth: .infinity)
     }
@@ -380,7 +389,7 @@ struct SettingsView: View {
                 }
             }
             .padding()
-
+            
         }
     }
 }
