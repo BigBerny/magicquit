@@ -3,9 +3,11 @@ import AppKit
 import Combine
 import LaunchAtLogin
 import os.log
+import Sparkle
 
 
 class RunningAppsManager: ObservableObject {
+    private let updaterController: SPUStandardUpdaterController
     @Published var runningApps: [NSRunningApplication: Date] = [:]
     @Published var appsToClose: [String] = []
     private var timer: Timer?
@@ -20,10 +22,15 @@ class RunningAppsManager: ObservableObject {
     let log = OSLog(subsystem: Bundle.main.bundleIdentifier!, category: "RunningAppsManager")
     
     init() {
+        os_log("Init", log: log, type: .debug)
+        //LaunchAtLogin.isEnabled = true
+        // If you want to start the updater manually, pass false to startingUpdater and call .startUpdater() later
+        // This is where you can also pass an updater delegate if you need one
+        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+        CheckForUpdatesView(updater: updaterController.updater)
         syncToggleStatus()
         addCurrentRunningApps()
         
-        os_log("Init", log: log, type: .debug)
         let didDeactivateObserver = NSWorkspace.shared.notificationCenter
         didDeactivateObserver.addObserver(forName: NSWorkspace.didDeactivateApplicationNotification,
                                           object: nil, // always NSWorkspace
@@ -130,6 +137,8 @@ class RunningAppsManager: ObservableObject {
 }
 
 struct ContentView: View {
+    private let updaterController: SPUStandardUpdaterController
+
     static let toggleStatusKey = "com.MagicQuit.toggleStatus"
     enum HoveredButton: Hashable {
         case quit
@@ -144,6 +153,7 @@ struct ContentView: View {
     
     init(manager: RunningAppsManager) {
         self.manager = manager
+        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
     }
     
     var body: some View {
@@ -164,7 +174,7 @@ struct ContentView: View {
                     currentSettingsWindowController.window?.makeKeyAndOrderFront(nil)
                     NSApp.activate(ignoringOtherApps: true)
                 } else {
-                    settingsWindowController = SettingsWindowController(rootView: SettingsView())
+                    settingsWindowController = SettingsWindowController(rootView: SettingsView(updater: updaterController.updater))
                     NSApp.activate(ignoringOtherApps: true) // Activate the application
                     settingsWindowController?.showWindow(nil)
                 }
@@ -340,6 +350,10 @@ class SettingsWindowController: NSWindowController {
 }
 
 struct SettingsView: View {
+    private let updater: SPUUpdater
+    
+    @State private var automaticallyChecksForUpdates: Bool
+    @State private var automaticallyDownloadsUpdates: Bool
     @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 24
     @AppStorage("showCloseButton") var showCloseButton: Bool = false
     
@@ -357,6 +371,12 @@ struct SettingsView: View {
         return ""
     }
     
+    init(updater: SPUUpdater) {
+        self.updater = updater
+        self.automaticallyChecksForUpdates = updater.automaticallyChecksForUpdates
+        self.automaticallyDownloadsUpdates = updater.automaticallyDownloadsUpdates
+    }
+    
     var body: some View {
         VStack {
             Image("Image")
@@ -368,9 +388,22 @@ struct SettingsView: View {
                 .font(.title)
                 .padding()
             
-            Text("\(appVersion) (\(appBuildNumber))")
+            Text("\(appVersion) (\(appBuildNumber))eded")
             
             Divider().padding()
+            
+            VStack {
+                Toggle("Automatically check for updates", isOn: $automaticallyChecksForUpdates)
+                    .onChange(of: automaticallyChecksForUpdates) { newValue in
+                        updater.automaticallyChecksForUpdates = newValue
+                    }
+                
+                Toggle("Automatically download updates", isOn: $automaticallyDownloadsUpdates)
+                    .disabled(!automaticallyChecksForUpdates)
+                    .onChange(of: automaticallyDownloadsUpdates) { newValue in
+                        updater.automaticallyDownloadsUpdates = newValue
+                    }
+            }.padding()
             
             VStack(alignment: .leading) {
                 HStack {
@@ -405,8 +438,10 @@ struct SettingsView: View {
 }
 
 struct SettingsWindow: NSViewRepresentable {
+    private let updaterController: SPUStandardUpdaterController
+    
     func makeNSView(context: Context) -> NSView {
-        let settingsWindowController = SettingsWindowController(rootView: SettingsView())
+        let settingsWindowController = SettingsWindowController(rootView: SettingsView(updater: updaterController.updater))
         settingsWindowController.showWindow(nil)
         return NSView()
     }
@@ -418,5 +453,35 @@ struct SettingsWindow: NSViewRepresentable {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         ContentView(manager: runningAppsManager)
+    }
+}
+
+// This view model class publishes when new updates can be checked by the user
+final class CheckForUpdatesViewModel: ObservableObject {
+    @Published var canCheckForUpdates = false
+
+    init(updater: SPUUpdater) {
+        updater.publisher(for: \.canCheckForUpdates)
+            .assign(to: &$canCheckForUpdates)
+    }
+}
+
+// This is the view for the Check for Updates menu item
+// Note this intermediate view is necessary for the disabled state on the menu item to work properly before Monterey.
+// See https://stackoverflow.com/questions/68553092/menu-not-updating-swiftui-bug for more info
+struct CheckForUpdatesView: View {
+    @ObservedObject private var checkForUpdatesViewModel: CheckForUpdatesViewModel
+    private let updater: SPUUpdater
+    
+    init(updater: SPUUpdater) {
+        self.updater = updater
+        
+        // Create our view model for our CheckForUpdatesView
+        self.checkForUpdatesViewModel = CheckForUpdatesViewModel(updater: updater)
+    }
+    
+    var body: some View {
+        Button("Check for Updates…", action: updater.checkForUpdates)
+            .disabled(!checkForUpdatesViewModel.canCheckForUpdates)
     }
 }

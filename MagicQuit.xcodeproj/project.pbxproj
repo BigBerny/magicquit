@@ -15,6 +15,7 @@
 		251773472A4F80980047DDA5 /* MagicQuitUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251773462A4F80980047DDA5 /* MagicQuitUITests.swift */; };
 		251773492A4F80980047DDA5 /* MagicQuitUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 251773482A4F80980047DDA5 /* MagicQuitUITestsLaunchTests.swift */; };
 		25B1842E2A69E49D007319B4 /* LaunchAtLogin in Frameworks */ = {isa = PBXBuildFile; productRef = 25B1842D2A69E49D007319B4 /* LaunchAtLogin */; };
+		25E7E3572A6DAF5C0050B837 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 25E7E3562A6DAF5C0050B837 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -46,6 +47,7 @@
 		251773422A4F80980047DDA5 /* MagicQuitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicQuitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		251773462A4F80980047DDA5 /* MagicQuitUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagicQuitUITests.swift; sourceTree = "<group>"; };
 		251773482A4F80980047DDA5 /* MagicQuitUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagicQuitUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		25E7E3582A6DD3920050B837 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -54,6 +56,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				25B1842E2A69E49D007319B4 /* LaunchAtLogin in Frameworks */,
+				25E7E3572A6DAF5C0050B837 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -97,6 +100,7 @@
 		251773292A4F80970047DDA5 /* MagicQuit */ = {
 			isa = PBXGroup;
 			children = (
+				25E7E3582A6DD3920050B837 /* Info.plist */,
 				2517732A2A4F80970047DDA5 /* MagicQuitApp.swift */,
 				2517732C2A4F80970047DDA5 /* ContentView.swift */,
 				2517732E2A4F80980047DDA5 /* Assets.xcassets */,
@@ -149,6 +153,7 @@
 			name = MagicQuit;
 			packageProductDependencies = (
 				25B1842D2A69E49D007319B4 /* LaunchAtLogin */,
+				25E7E3562A6DAF5C0050B837 /* Sparkle */,
 			);
 			productName = MagicQuit;
 			productReference = 251773272A4F80970047DDA5 /* MagicQuit.app */;
@@ -224,6 +229,7 @@
 			mainGroup = 2517731E2A4F80970047DDA5;
 			packageReferences = (
 				25B1842C2A69E49D007319B4 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */,
+				25E7E3552A6DAF5C0050B837 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			productRefGroup = 251773282A4F80970047DDA5 /* Products */;
 			projectDirPath = "";
@@ -428,12 +434,13 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_ASSET_PATHS = "\"MagicQuit/Preview Content\"";
-				DEVELOPMENT_TEAM = NS3G7687Y3;
+				DEVELOPMENT_TEAM = 4HMNGH59W8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MagicQuit/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MagicQuit;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -443,7 +450,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.MagicQuit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -461,12 +468,13 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEVELOPMENT_ASSET_PATHS = "\"MagicQuit/Preview Content\"";
-				DEVELOPMENT_TEAM = NS3G7687Y3;
+				DEVELOPMENT_TEAM = 4HMNGH59W8;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MagicQuit/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MagicQuit;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -476,7 +484,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = 1.2.1;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.MagicQuit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -606,6 +614,14 @@
 				kind = branch;
 			};
 		};
+		25E7E3552A6DAF5C0050B837 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -613,6 +629,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 25B1842C2A69E49D007319B4 /* XCRemoteSwiftPackageReference "LaunchAtLogin-Modern" */;
 			productName = LaunchAtLogin;
+		};
+		25E7E3562A6DAF5C0050B837 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 25E7E3552A6DAF5C0050B837 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
