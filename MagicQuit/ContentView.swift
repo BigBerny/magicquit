@@ -271,7 +271,7 @@ struct AppRow: View {
             
             Text(app.key.localizedName ?? "Unknown")
                 .frame(minWidth: 100, maxWidth: .infinity, alignment: .leading)
-                .fontWeight(isLessThanHour ? .bold : .regular)
+                .fontWeight(isLessThanHour && shouldQuitCheckbox.wrappedValue ? .bold : .regular)
                 .lineLimit(1)  // Limit to one line
                 .truncationMode(.tail)
                 .foregroundColor(shouldQuitCheckbox.wrappedValue ? .primary : .gray) // Change the text color based on the toggle status
