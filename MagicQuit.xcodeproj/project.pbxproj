@@ -46,6 +46,7 @@
 		251773422A4F80980047DDA5 /* MagicQuitUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MagicQuitUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		251773462A4F80980047DDA5 /* MagicQuitUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagicQuitUITests.swift; sourceTree = "<group>"; };
 		251773482A4F80980047DDA5 /* MagicQuitUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MagicQuitUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		25A62DFB2A7B04D300C6FDAC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +98,7 @@
 		251773292A4F80970047DDA5 /* MagicQuit */ = {
 			isa = PBXGroup;
 			children = (
+				25A62DFB2A7B04D300C6FDAC /* Info.plist */,
 				2517732A2A4F80970047DDA5 /* MagicQuitApp.swift */,
 				2517732C2A4F80970047DDA5 /* ContentView.swift */,
 				2517732E2A4F80980047DDA5 /* Assets.xcassets */,
@@ -428,12 +430,13 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_ASSET_PATHS = "\"MagicQuit/Preview Content\"";
 				DEVELOPMENT_TEAM = NS3G7687Y3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MagicQuit/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MagicQuit;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
@@ -462,12 +465,13 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 13;
+				CURRENT_PROJECT_VERSION = 14;
 				DEVELOPMENT_ASSET_PATHS = "\"MagicQuit/Preview Content\"";
 				DEVELOPMENT_TEAM = NS3G7687Y3;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MagicQuit/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = MagicQuit;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_LSUIElement = YES;
