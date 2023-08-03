@@ -119,38 +119,6 @@ class RunningAppsManager: ObservableObject {
         // Check if any apps have been running for more than hoursUntilClose and terminate them
         let hourInSeconds = 3600
         for (app, startDate) in runningApps {
-            /*let options = NSDictionary(object: kCFBooleanTrue, forKey: kAXTrustedCheckOptionPrompt.takeUnretainedValue() as NSString) as CFDictionary
-            let accessibilityEnabled = AXIsProcessTrustedWithOptions(options)
-
-            if accessibilityEnabled {
-                let appRef = AXUIElementCreateApplication(app.processIdentifier)
-                var value: AnyObject?
-                let result = AXUIElementCopyAttributeValue(appRef, kAXWindowsAttribute as CFString, &value)
-                if result == AXError.success {
-                    if let windowList = value as? [AXUIElement] {
-                        if windowList.count == 0 {
-                            print("\(app.localizedName ?? "") has \(windowList.count) open windows.")
-                        }
-                    }
-                }
-            }*/
-            
-            let scriptSource = """
-            tell application "Microsoft Word"
-                count windows
-            end tell
-            """
-
-            if let appleScript = NSAppleScript(source: scriptSource) {
-                var error: NSDictionary?
-                let output: NSAppleEventDescriptor = appleScript.executeAndReturnError(&error)
-                if error == nil {
-                    print("Microsoft Word has \(output.int32Value) open windows.")
-                } else if let error = error {
-                    print("Error: \(error)")
-                }
-            }
-            
             let elapsedTime = currentDate.timeIntervalSince(startDate)
             if elapsedTime > Double(hoursUntilClose * hourInSeconds), app.isFinishedLaunching, toggleStatus[app.localizedName ?? ""] ?? true {
                 let isTerminated = app.terminate()
