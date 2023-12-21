@@ -109,6 +109,13 @@ class RunningAppsManager: ObservableObject {
         let currentApps = apps.compactMap { $0 }
         runningApps = runningApps.filter { currentApps.contains($0.key) }
         
+        // Remove apps that are blocked (e.g. only appear in Menu Bar) from runningApps
+        for app in runningApps.keys {
+            if isBlockedApp(app) {
+                runningApps[app] = nil
+            }
+        }
+        
         // Set date of the currently active app to currentDate
         if let activeApp = workspace.frontmostApplication, !isBlockedApp(activeApp) {
             runningApps[activeApp] = currentDate
