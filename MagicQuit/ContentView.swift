@@ -3,7 +3,7 @@ import AppKit
 import Combine
 import LaunchAtLogin
 import os.log
-import ScriptingBridge
+import ApplicationServices
 
 
 class RunningAppsManager: ObservableObject {
@@ -11,6 +11,7 @@ class RunningAppsManager: ObservableObject {
     @Published var appsToClose: [String] = []
     private var timer: Timer?
     @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 8
+    @AppStorage("closeOnLastWindowClosed") var closeOnLastWindowClosed: Bool = false
     @Published var toggleStatus: [String: Bool] = [:] {
         willSet {
             objectWillChange.send()
@@ -20,11 +21,18 @@ class RunningAppsManager: ObservableObject {
     
     let log = OSLog(subsystem: Bundle.main.bundleIdentifier!, category: "RunningAppsManager")
     
+    // Window tracking
+    private var windowCountCache: [String: Int] = [:]
+    private var axObservers: [pid_t: AXObserver] = [:]
+    private var pendingTerminations: Set<pid_t> = []
+    
     init() {
         syncToggleStatus()
         addCurrentRunningApps()
         
         os_log("Init", log: log, type: .debug)
+        
+        // Set up notification observers
         let didDeactivateObserver = NSWorkspace.shared.notificationCenter
         didDeactivateObserver.addObserver(forName: NSWorkspace.didDeactivateApplicationNotification,
                                           object: nil, // always NSWorkspace
@@ -38,6 +46,12 @@ class RunningAppsManager: ObservableObject {
                 }
             }
         }
+        
+        // Set up observers for app launch and termination
+        if closeOnLastWindowClosed {
+            setupWindowMonitoring()
+        }
+        
         // Setup Timer
         self.timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
@@ -50,6 +64,203 @@ class RunningAppsManager: ObservableObject {
     
     deinit {
         os_log("RunningAppsManager is being deallocated", log: log, type: .debug)
+        cleanupWindowMonitoring()
+    }
+    
+    // MARK: - Window Monitoring
+    
+    private func setupWindowMonitoring() {
+        // Check for accessibility permissions first
+        let options: NSDictionary = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+        let accessEnabled = AXIsProcessTrustedWithOptions(options)
+        
+        if !accessEnabled {
+            os_log("Accessibility permissions not granted", log: log, type: .error)
+            // The system will show a prompt to the user
+            return
+        }
+        
+        // Listen for app launch/termination
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(appDidLaunch(_:)),
+            name: NSWorkspace.didLaunchApplicationNotification,
+            object: nil
+        )
+        
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(appDidTerminate(_:)),
+            name: NSWorkspace.didTerminateApplicationNotification,
+            object: nil
+        )
+        
+        // Start monitoring existing apps
+        for app in NSWorkspace.shared.runningApplications {
+            if !isBlockedApp(app) {
+                startMonitoringApp(app)
+            }
+        }
+    }
+    
+    private func cleanupWindowMonitoring() {
+        NSWorkspace.shared.notificationCenter.removeObserver(self)
+        
+        // Clean up all AX observers
+        for (_, observer) in axObservers {
+            CFRunLoopRemoveSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .defaultMode)
+        }
+        axObservers.removeAll()
+        windowCountCache.removeAll()
+        pendingTerminations.removeAll()
+    }
+    
+    @objc private func appDidLaunch(_ notification: Notification) {
+        guard closeOnLastWindowClosed,
+              let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+              !isBlockedApp(app) else { return }
+        
+        startMonitoringApp(app)
+    }
+    
+    @objc private func appDidTerminate(_ notification: Notification) {
+        guard let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication else { return }
+        
+        stopMonitoringApp(app)
+    }
+    
+    private func startMonitoringApp(_ app: NSRunningApplication) {
+        let pid = app.processIdentifier
+        
+        // Skip if already monitoring
+        if axObservers[pid] != nil { return }
+        
+        var observer: AXObserver?
+        let callback: AXObserverCallback = { (observer, element, notification, userData) in
+            guard let userData = userData else { return }
+            let manager = Unmanaged<RunningAppsManager>.fromOpaque(userData).takeUnretainedValue()
+            
+            // Extract PID from the AXUIElement
+            var elementPid: pid_t = 0
+            AXUIElementGetPid(element, &elementPid)
+            
+            manager.handleWindowEvent(pid: elementPid, element: element, notification: notification as String)
+        }
+        
+        let result = AXObserverCreate(pid, callback, &observer)
+        guard result == .success, let observer = observer else {
+            os_log("Failed to create AXObserver for %{public}@", log: log, type: .error, app.localizedName ?? "Unknown")
+            return
+        }
+        
+        // Get the app's accessibility element
+        let appElement = AXUIElementCreateApplication(pid)
+        
+        // Register for window events
+        AXObserverAddNotification(observer, appElement, kAXWindowCreatedNotification as CFString, 
+                                 UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()))
+        AXObserverAddNotification(observer, appElement, kAXUIElementDestroyedNotification as CFString, 
+                                 UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()))
+        
+        // Also monitor all existing windows
+        var windowsValue: CFTypeRef?
+        if AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsValue) == .success,
+           let windows = windowsValue as? [AXUIElement] {
+            os_log("Monitoring %d existing windows for %{public}@", log: log, type: .debug, windows.count, app.localizedName ?? "Unknown")
+            for window in windows {
+                AXObserverAddNotification(observer, window, kAXUIElementDestroyedNotification as CFString,
+                                        UnsafeMutableRawPointer(Unmanaged.passUnretained(self).toOpaque()))
+            }
+        }
+        
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .defaultMode)
+        axObservers[pid] = observer
+        
+        os_log("Started monitoring %{public}@", log: log, type: .info, app.localizedName ?? "Unknown")
+    }
+    
+    private func stopMonitoringApp(_ app: NSRunningApplication) {
+        let pid = app.processIdentifier
+        
+        if let observer = axObservers[pid] {
+            CFRunLoopRemoveSource(CFRunLoopGetCurrent(), AXObserverGetRunLoopSource(observer), .defaultMode)
+            axObservers.removeValue(forKey: pid)
+        }
+        
+        windowCountCache.removeValue(forKey: app.bundleIdentifier ?? "")
+        pendingTerminations.remove(pid)
+    }
+    
+    private func handleWindowEvent(pid: pid_t, element: AXUIElement, notification: String) {
+        os_log("Window event: %{public}@ for pid %d", log: log, type: .debug, notification, pid)
+        
+        // For window destroyed events, check if this was the last window
+        if notification == kAXUIElementDestroyedNotification as String {
+            guard let app = NSRunningApplication(processIdentifier: pid),
+                  !isBlockedApp(app),
+                  toggleStatus[app.localizedName ?? ""] ?? true else { return }
+            
+            // Add a delay like SwiftQuit does
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.checkAppWindows(app: app)
+            }
+        }
+    }
+    
+    private func checkAppWindows(app: NSRunningApplication) {
+        guard closeOnLastWindowClosed,
+              app.isFinishedLaunching,
+              !pendingTerminations.contains(app.processIdentifier),
+              toggleStatus[app.localizedName ?? ""] ?? true else { return }
+        
+        let windowCount = getWindowCount(for: app)
+        os_log("App %{public}@ has %d windows", log: log, type: .debug, app.localizedName ?? "Unknown", windowCount)
+        
+        if windowCount == 0 {
+            os_log("No windows remaining for %{public}@, terminating", log: log, type: .info, app.localizedName ?? "Unknown")
+            pendingTerminations.insert(app.processIdentifier)
+            
+            if app.terminate() {
+                os_log("Successfully terminated %{public}@", log: log, type: .info, app.localizedName ?? "Unknown")
+            } else {
+                os_log("Failed to terminate %{public}@", log: log, type: .error, app.localizedName ?? "Unknown")
+                pendingTerminations.remove(app.processIdentifier)
+            }
+        }
+    }
+
+    
+    private func getWindowCount(for app: NSRunningApplication) -> Int {
+        let appElement = AXUIElementCreateApplication(app.processIdentifier)
+        var windowsValue: CFTypeRef?
+        
+        let result = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsValue)
+        
+        guard result == .success,
+              let windows = windowsValue as? [AXUIElement] else {
+            return 0
+        }
+        
+        // Filter out non-standard windows (like menu bar windows, etc.)
+        var standardWindowCount = 0
+        
+        for window in windows {
+            var roleValue: CFTypeRef?
+            var subroleValue: CFTypeRef?
+            
+            AXUIElementCopyAttributeValue(window, kAXRoleAttribute as CFString, &roleValue)
+            AXUIElementCopyAttributeValue(window, kAXSubroleAttribute as CFString, &subroleValue)
+            
+            if let role = roleValue as? String,
+               role == (kAXWindowRole as String) {
+                // Check if it's a standard window (not a dialog, sheet, etc.)
+                if subroleValue == nil || (subroleValue as? String) == (kAXStandardWindowSubrole as String) {
+                    standardWindowCount += 1
+                }
+            }
+        }
+        
+        return standardWindowCount
     }
     
     // Synchronize toggleStatus with toggleStatusData
@@ -63,6 +274,16 @@ class RunningAppsManager: ObservableObject {
     func saveToggleStatus() {
         if let data = try? JSONEncoder().encode(toggleStatus) {
             toggleStatusData = data
+        }
+    }
+    
+    // Enable or disable window monitoring based on setting
+    func updateWindowMonitoring() {
+        if closeOnLastWindowClosed {
+            setupWindowMonitoring()
+        } else {
+            cleanupWindowMonitoring()
+            windowCountCache.removeAll()
         }
     }
     
@@ -335,7 +556,7 @@ class SettingsWindowController: NSWindowController {
     static var current: SettingsWindowController?
     
     convenience init(rootView: SettingsView) {
-        let hostingController = NSHostingController(rootView: rootView.frame(width: 600, height: 400))
+        let hostingController = NSHostingController(rootView: rootView.frame(width: 600, height: 600))
         let window = NSWindow(contentViewController: hostingController)
         window.title = "Settings"
         self.init(window: window)
@@ -350,6 +571,20 @@ class SettingsWindowController: NSWindowController {
 struct SettingsView: View {
     @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 24
     @AppStorage("showCloseButton") var showCloseButton: Bool = false
+    @AppStorage("closeOnLastWindowClosed") var closeOnLastWindowClosed: Bool = false
+    @State private var selection: Int = 5
+
+    struct GradientButton: View {
+        var glyph: String
+        var body: some View {
+            ZStack {
+                Image(systemName: glyph)
+                    .fontWeight(.medium)
+                Color.clear
+                    .frame(width: 24, height: 24)
+            }
+        }
+    }
     
     var appVersion: String {
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
@@ -405,9 +640,47 @@ struct SettingsView: View {
                         Text("Shows button to quit apps manually")
                     }
                 }
+                HStack {
+                    Text("Window close:")
+                        .frame(width: 100, alignment: .trailing)
+                        .padding(.trailing, 20)
+                    Toggle(isOn: $closeOnLastWindowClosed) {
+                        Text("Quit apps when last window is closed")
+                    }
+                    .onChange(of: closeOnLastWindowClosed) { _ in
+                        runningAppsManager.updateWindowMonitoring()
+                    }
+                }
+                HStack {
+                    Form {
+                        Section {
+                            List(selection: $selection) {
+                                ForEach(0 ..< 5) { Text("Item \($0)") }
+                            }
+                            .padding(.bottom, 24)
+                            .overlay(alignment: .bottom, content: {
+                                VStack(alignment: .leading, spacing: 0) {
+                                    Divider()
+                                    HStack(spacing: 0) {
+                                        Button(action: {}) {
+                                            GradientButton(glyph: "plus")
+                                        }
+                                        Divider().frame(height: 16)
+                                        Button(action: {}) {
+                                            GradientButton(glyph: "minus")
+                                        }
+                                        .disabled(selection == nil ? true : false)
+                                    }
+                                    .buttonStyle(.borderless)
+                                }
+                                .background(Rectangle().opacity(0.04))
+                            })
+                        }
+                    }
+                    .formStyle(.grouped)
+                }
             }
             .padding()
-            
         }
     }
 }
