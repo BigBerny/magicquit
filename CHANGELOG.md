@@ -1,3 +1,8 @@
+## Unreleased
+
+### Improvements
+- Idle time setting is now in minutes (1–4320); existing hour values are migrated automatically on launch.
+
 ## Version 1.4 - 2023-12-21
 
 ### Improvements

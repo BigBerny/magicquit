@@ -10,7 +10,7 @@ class RunningAppsManager: ObservableObject {
     @Published var runningApps: [NSRunningApplication: Date] = [:]
     @Published var appsToClose: [String] = []
     private var timer: Timer?
-    @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 8
+    @AppStorage("minutesUntilClose") var minutesUntilClose: Int = 480
     @Published var toggleStatus: [String: Bool] = [:] {
         willSet {
             objectWillChange.send()
@@ -21,6 +21,7 @@ class RunningAppsManager: ObservableObject {
     let log = OSLog(subsystem: Bundle.main.bundleIdentifier!, category: "RunningAppsManager")
     
     init() {
+        migrateHoursToMinutesIfNeeded()
         syncToggleStatus()
         addCurrentRunningApps()
         
@@ -50,6 +51,16 @@ class RunningAppsManager: ObservableObject {
     
     deinit {
         os_log("RunningAppsManager is being deallocated", log: log, type: .debug)
+    }
+    
+    private func migrateHoursToMinutesIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: "hoursUntilClose") != nil else { return }
+        let hours = defaults.integer(forKey: "hoursUntilClose")
+        if hours > 0 {
+            defaults.set(hours * 60, forKey: "minutesUntilClose")
+        }
+        defaults.removeObject(forKey: "hoursUntilClose")
     }
     
     // Synchronize toggleStatus with toggleStatusData
@@ -123,11 +134,11 @@ class RunningAppsManager: ObservableObject {
         
         addCurrentRunningApps()
         
-        // Check if any apps have been running for more than hoursUntilClose and terminate them
-        let hourInSeconds = 3600
+        // Check if any apps have been idle for more than minutesUntilClose and terminate them
+        let idleThresholdSeconds = minutesUntilClose * 60
         for (app, startDate) in runningApps {
             let elapsedTime = currentDate.timeIntervalSince(startDate)
-            if elapsedTime > Double(hoursUntilClose * hourInSeconds), app.isFinishedLaunching, toggleStatus[app.localizedName ?? ""] ?? true {
+            if elapsedTime > Double(idleThresholdSeconds), app.isFinishedLaunching, toggleStatus[app.localizedName ?? ""] ?? true {
                 let isTerminated = app.terminate()
                 if isTerminated {
                     runningApps[app] = nil
@@ -246,7 +257,7 @@ struct ContentView: View {
 struct AppRow: View {
     var app: (key: NSRunningApplication, value: Date)
     @ObservedObject var manager: RunningAppsManager
-    @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 12
+    @AppStorage("minutesUntilClose") var minutesUntilClose: Int = 480
     @AppStorage("showCloseButton") var showCloseButton: Bool = false
     
     var shouldQuitCheckbox: Binding<Bool> {
@@ -260,8 +271,8 @@ struct AppRow: View {
     }
     
     var body: some View {
-        let secondsUntilClose = (hoursUntilClose * 60 * 60) - Int(Date().timeIntervalSince(app.value))
-        let isLessThanHour = secondsUntilClose < 3600
+        let secondsUntilClose = (minutesUntilClose * 60) - Int(Date().timeIntervalSince(app.value))
+        let isClosingSoon = secondsUntilClose < 3600
         
         HStack {
             Toggle(isOn: shouldQuitCheckbox) {
@@ -279,16 +290,16 @@ struct AppRow: View {
             
             Text(app.key.localizedName ?? "Unknown")
                 .frame(minWidth: 100, maxWidth: .infinity, alignment: .leading)
-                .fontWeight(isLessThanHour && shouldQuitCheckbox.wrappedValue ? .bold : .regular)
+                .fontWeight(isClosingSoon && shouldQuitCheckbox.wrappedValue ? .bold : .regular)
                 .lineLimit(1)  // Limit to one line
                 .truncationMode(.tail)
                 .foregroundColor(shouldQuitCheckbox.wrappedValue ? .primary : .gray) // Change the text color based on the toggle status
             
             Spacer() // Add a spacer to push apart the two Text views
             if shouldQuitCheckbox.wrappedValue {
-                let secondsUntilClose = (hoursUntilClose * 60 * 60) - Int(Date().timeIntervalSince(app.value))
+                let secondsUntilClose = (minutesUntilClose * 60) - Int(Date().timeIntervalSince(app.value))
                 Text(formatTime(seconds: secondsUntilClose)).frame(alignment: .trailing)
-                    .fontWeight(isLessThanHour ? .bold : .regular)
+                    .fontWeight(isClosingSoon ? .bold : .regular)
                     .alignmentGuide(.trailing, computeValue: { dimension in
                         dimension[.trailing]
                     })
@@ -348,7 +359,7 @@ class SettingsWindowController: NSWindowController {
 }
 
 struct SettingsView: View {
-    @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 24
+    @AppStorage("minutesUntilClose") var minutesUntilClose: Int = 480
     @AppStorage("showCloseButton") var showCloseButton: Bool = false
     
     var appVersion: String {
@@ -391,8 +402,8 @@ struct SettingsView: View {
                     Text("Idle time:")
                         .frame(width: 100, alignment: .trailing)
                         .padding(.trailing, 20)
-                    Stepper(value: $hoursUntilClose, in: 1...72) {
-                        Text("\(hoursUntilClose)h")
+                    Stepper(value: $minutesUntilClose, in: 1...4320) {
+                        Text("\(minutesUntilClose)m")
                     }
                     Text("until quitting")
                         .padding(.trailing, 0)
