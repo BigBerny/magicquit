@@ -4,6 +4,7 @@ import Combine
 import LaunchAtLogin
 import os.log
 import ScriptingBridge
+import ApplicationServices
 
 
 class RunningAppsManager: ObservableObject {
@@ -17,23 +18,30 @@ class RunningAppsManager: ObservableObject {
         }
     }
     @AppStorage("com.MagicQuit.toggleStatus") var toggleStatusData: Data = Data()
+    @AppStorage("closeOnLastWindowClosed") var closeOnLastWindowClosed: Bool = false
+    
+    private var windowCheckTimers: [NSRunningApplication: Timer] = [:]
     
     let log = OSLog(subsystem: Bundle.main.bundleIdentifier!, category: "RunningAppsManager")
     
     init() {
+        os_log("MagicQuit RunningAppsManager init starting", log: log, type: .error)
         syncToggleStatus()
         addCurrentRunningApps()
         
-        os_log("Init", log: log, type: .debug)
+        os_log("MagicQuit Init - closeOnLastWindowClosed: %{public}@", log: log, type: .error, closeOnLastWindowClosed ? "true" : "false")
         let didDeactivateObserver = NSWorkspace.shared.notificationCenter
         didDeactivateObserver.addObserver(forName: NSWorkspace.didDeactivateApplicationNotification,
                                           object: nil, // always NSWorkspace
                                           queue: OperationQueue.main) { (notification: Notification) in
             if let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication {
-                os_log("didDeactivate: %{public}@", log: self.log, type: .debug, app.localizedName ?? "Unknown")
+                os_log("MagicQuit didDeactivate: %{public}@", log: self.log, type: .error, app.localizedName ?? "Unknown")
                 if !self.isBlockedApp(app) {
                     DispatchQueue.main.async {
                         self.runningApps[app] = Date()
+                        
+                        // Check if app should be closed when last window closes
+                        self.scheduleWindowCheckIfNeeded(for: app)
                     }
                 }
             }
@@ -50,6 +58,9 @@ class RunningAppsManager: ObservableObject {
     
     deinit {
         os_log("RunningAppsManager is being deallocated", log: log, type: .debug)
+        for app in windowCheckTimers.keys {
+            cancelWindowCheck(for: app)
+        }
     }
     
     // Synchronize toggleStatus with toggleStatusData
@@ -93,6 +104,7 @@ class RunningAppsManager: ObservableObject {
             if !isBlockedApp(app), self.runningApps[app] == nil {
                 DispatchQueue.main.async {
                     self.runningApps[app] = currentDate
+                    os_log("MagicQuit Adding app to tracking: %{public}@", log: self.log, type: .error, app.localizedName ?? "Unknown")
                 }
             }
         }
@@ -107,6 +119,10 @@ class RunningAppsManager: ObservableObject {
         
         // Remove apps from runningApps that are not active anymore
         let currentApps = apps.compactMap { $0 }
+        let removedApps = runningApps.keys.filter { !currentApps.contains($0) }
+        for app in removedApps {
+            cancelWindowCheck(for: app)
+        }
         runningApps = runningApps.filter { currentApps.contains($0.key) }
         
         // Remove apps that are blocked (e.g. only appear in Menu Bar) from runningApps
@@ -131,9 +147,93 @@ class RunningAppsManager: ObservableObject {
                 let isTerminated = app.terminate()
                 if isTerminated {
                     runningApps[app] = nil
+                    cancelWindowCheck(for: app)
                 }
             }
         }
+    }
+    
+    private func scheduleWindowCheckIfNeeded(for app: NSRunningApplication) {
+        guard closeOnLastWindowClosed else { return }
+        guard !isBlockedApp(app) else { return }
+        guard toggleStatus[app.localizedName ?? ""] ?? true else { return }
+        
+        os_log("MagicQuit Scheduling window check for %{public}@", log: log, type: .error, app.localizedName ?? "Unknown")
+        
+        // Cancel any existing timer for this app
+        cancelWindowCheck(for: app)
+        
+        // Schedule a check after 1 second delay to see if app has no windows
+        let timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
+            self?.checkAppWindowCount(app)
+        }
+        
+        windowCheckTimers[app] = timer
+    }
+    
+    private func cancelWindowCheck(for app: NSRunningApplication) {
+        windowCheckTimers[app]?.invalidate()
+        windowCheckTimers[app] = nil
+    }
+    
+    private func checkAppWindowCount(_ app: NSRunningApplication) {
+        guard closeOnLastWindowClosed else { return }
+        guard !isBlockedApp(app) else { return }
+        guard toggleStatus[app.localizedName ?? ""] ?? true else { return }
+        guard app.isFinishedLaunching else { return }
+        
+        os_log("Checking window count for %{public}@", log: log, type: .debug, app.localizedName ?? "Unknown")
+        
+        // Check if we have accessibility permissions
+        let trusted = AXIsProcessTrusted()
+        guard trusted else {
+            os_log("No accessibility permissions to check %{public}@", log: log, type: .debug, app.localizedName ?? "Unknown")
+            return
+        }
+        
+        let pid = app.processIdentifier
+        let appElement = AXUIElementCreateApplication(pid)
+        
+        var windowCount: CFIndex = 0
+        var windowsValue: CFTypeRef?
+        let result = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &windowsValue)
+        
+        if result == .success, let windows = windowsValue as? [AXUIElement] {
+            windowCount = windows.count
+        }
+        
+        os_log("App %{public}@ has %{public}ld windows", log: log, type: .info, app.localizedName ?? "Unknown", windowCount)
+        
+        if windowCount == 0 {
+            os_log("App %{public}@ has no windows, will recheck in 2 seconds", log: log, type: .info, app.localizedName ?? "Unknown")
+            
+            // Double-check after 2 seconds to avoid race conditions
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                guard let self = self else { return }
+                
+                var recheckedWindowCount: CFIndex = 0
+                var recheckedWindowsValue: CFTypeRef?
+                let recheckResult = AXUIElementCopyAttributeValue(appElement, kAXWindowsAttribute as CFString, &recheckedWindowsValue)
+                
+                if recheckResult == .success, let windows = recheckedWindowsValue as? [AXUIElement] {
+                    recheckedWindowCount = windows.count
+                }
+                
+                os_log("App %{public}@ recheck: %{public}ld windows", log: self.log, type: .info, app.localizedName ?? "Unknown", recheckedWindowCount)
+                
+                if recheckedWindowCount == 0 {
+                    os_log("Terminating %{public}@ - no windows remaining", log: self.log, type: .info, app.localizedName ?? "Unknown")
+                    let isTerminated = app.terminate()
+                    if isTerminated {
+                        self.runningApps[app] = nil
+                        self.cancelWindowCheck(for: app)
+                    }
+                }
+            }
+        }
+        
+        // Clean up timer
+        cancelWindowCheck(for: app)
     }
 }
 
@@ -350,6 +450,7 @@ class SettingsWindowController: NSWindowController {
 struct SettingsView: View {
     @AppStorage("hoursUntilClose") var hoursUntilClose: Int = 24
     @AppStorage("showCloseButton") var showCloseButton: Bool = false
+    @AppStorage("closeOnLastWindowClosed") var closeOnLastWindowClosed: Bool = false
     
     var appVersion: String {
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
@@ -403,6 +504,14 @@ struct SettingsView: View {
                         .padding(.trailing, 20)
                     Toggle(isOn: $showCloseButton) {
                         Text("Shows button to quit apps manually")
+                    }
+                }
+                HStack {
+                    Text("Window close:")
+                        .frame(width: 100, alignment: .trailing)
+                        .padding(.trailing, 20)
+                    Toggle(isOn: $closeOnLastWindowClosed) {
+                        Text("Quit app when last window is closed")
                     }
                 }
             }
