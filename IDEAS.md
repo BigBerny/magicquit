@@ -1,5 +1,13 @@
 # MagicQuit — Verbesserungsideen (Stand 2026-07-20)
 
+> **STATUS 2026-07-20: Runde 1 UMGESETZT** (Commits b8d433a…996c405, alle auf main gepusht).
+> Punkte 1–4 komplett, Punkt 5 vorbereitet, Punkt 7 teilweise. Verbleibende manuelle Schritte (MacBook):
+> 1. `generate_keys` ausführen, Public Key in Info.plist `SUPublicEDKey` eintragen (siehe RELEASING.md)
+> 2. `./scripts/release.sh` für Release 2.0 (Developer-ID-Signing + Notarization)
+> 3. Homebrew-Cask einreichen (packaging/homebrew/magicquit.rb, SHA eintragen)
+> 4. On-Device-Verify: Window-Close-Feature mit AX-Berechtigung in echter Session testen
+> 5. Offene PRs #16–#19 beantworten/schliessen (durch 2.0 überholt; GitHub-Antworten bewusst Janis überlassen)
+
 Arbeitsliste für die Modernisierungs-Runde. Quellen: eigener Code-Review, GitHub-Issues/PRs (343 ⭐, 19 Issues/PRs), SwiftQuit-Vergleich.
 
 ## 1. Neues Feature: Quit beim Schliessen des letzten Fensters (Windows-Verhalten)
