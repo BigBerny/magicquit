@@ -10,6 +10,7 @@ struct MagicQuitApp: App {
         let settings = AppSettings()
         _settings = StateObject(wrappedValue: settings)
         _manager = StateObject(wrappedValue: RunningAppsManager(settings: settings))
+        _ = UpdaterSupport.controller
     }
 
     var body: some Scene {
