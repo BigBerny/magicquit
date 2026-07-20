@@ -5,7 +5,7 @@
 	<key>SUFeedURL</key>
 	<string>https://raw.githubusercontent.com/BigBerny/magicquit/main/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string></string>
+	<string>wFrCgZt+qwG6/UbxYscLbW9m2ttAS5AvQMC9ROCZr7g=</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUAutomaticallyUpdate</key>

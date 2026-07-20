@@ -1,4 +1,4 @@
-## Version 2.0 - 2026
+## Version 2.0 - 2026-07-20
 
 ### New
 - Quit apps when their last window closes (like on Windows), with an exclusion list. Media players are excluded by default.
