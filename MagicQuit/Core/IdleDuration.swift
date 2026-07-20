@@ -9,9 +9,11 @@ enum IdleDuration {
         minutes < 60 ? "\(minutes) min" : "\(minutes / 60) h"
     }
 
-    /// Nearest step for an arbitrary duration; used when migrating 1.x settings.
-    static func nearestStep(toMinutes minutes: Int) -> Int {
-        stepsInMinutes.min { abs($0 - minutes) < abs($1 - minutes) } ?? defaultMinutes
+    /// Smallest step that is at least the given duration; used when migrating 1.x
+    /// settings. Rounding up on purpose: apps must never quit earlier than the
+    /// user configured. Durations beyond the largest step clamp to it.
+    static func stepAtLeast(minutes: Int) -> Int {
+        stepsInMinutes.first { $0 >= minutes } ?? stepsInMinutes.last ?? defaultMinutes
     }
 
     static func stepDown(from minutes: Int) -> Int {

@@ -49,7 +49,8 @@ echo "==> SHA256 for the Homebrew cask"
 shasum -a 256 "$RELEASES_DIR/$ZIP"
 
 echo "==> Creating GitHub release v$VERSION"
-gh release create "v$VERSION" "$RELEASES_DIR/$ZIP" --title "MagicQuit $VERSION" --generate-notes
+gh release create "v$VERSION" "$RELEASES_DIR/$ZIP" --title "MagicQuit $VERSION" --generate-notes \
+    --target "$(git rev-parse HEAD)"
 
 echo
 echo "Done. Still to do:"

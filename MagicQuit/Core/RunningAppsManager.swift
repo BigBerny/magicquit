@@ -17,6 +17,7 @@ final class RunningAppsManager: ObservableObject {
     let windowWatcher: WindowWatcher
 
     private var sweepTimer: Timer?
+    private var dueTimer: Timer?
     private var observerTokens: [NSObjectProtocol] = []
     private var distributedTokens: [NSObjectProtocol] = []
     /// Set while the machine is asleep or the screen is locked; that time is not counted as idle.
@@ -77,6 +78,7 @@ final class RunningAppsManager: ObservableObject {
 
     deinit {
         sweepTimer?.invalidate()
+        dueTimer?.invalidate()
         let center = NSWorkspace.shared.notificationCenter
         for token in observerTokens {
             center.removeObserver(token)
@@ -169,6 +171,22 @@ final class RunningAppsManager: ObservableObject {
             else { continue }
             quit(entry.app)
         }
+        scheduleDueCheck(now: now)
+    }
+
+    /// The sweep runs every 30s; when an app is due sooner, fire once exactly then
+    /// so the menu countdown never sits at "0 s" waiting for the next sweep.
+    private func scheduleDueCheck(now: Date) {
+        dueTimer?.invalidate()
+        dueTimer = nil
+        let soonest = tracked.values
+            .filter { isIdleQuitEnabled($0.app) }
+            .map { QuitPolicy.remainingSeconds(lastActive: $0.lastActive, now: now, idleMinutes: settings.idleMinutes) }
+            .min()
+        guard let soonest, soonest > 0, soonest < 30 else { return }
+        dueTimer = Timer.scheduledTimer(withTimeInterval: TimeInterval(soonest) + 1, repeats: false) { _ in
+            Task { @MainActor [weak self] in self?.sweep() }
+        }
     }
 
     func quit(_ app: NSRunningApplication) {
@@ -182,19 +200,29 @@ final class RunningAppsManager: ObservableObject {
         tracked[pid]?.lastActive = Date()
     }
 
-    // MARK: - Per-app idle-quit exclusion
+    // MARK: - Per-app exclusion ("never quit this app")
+
+    /// Stable per-app key; falls back to the executable path for the rare app
+    /// without a bundle identifier so its checkbox still works.
+    private func exclusionKey(for app: NSRunningApplication) -> String? {
+        app.bundleIdentifier ?? app.executableURL?.path
+    }
+
+    func canToggleIdleQuit(_ app: NSRunningApplication) -> Bool {
+        exclusionKey(for: app) != nil
+    }
 
     func isIdleQuitEnabled(_ app: NSRunningApplication) -> Bool {
-        guard let id = app.bundleIdentifier else { return true }
-        return !settings.idleQuitExcluded.contains(id)
+        guard let key = exclusionKey(for: app) else { return true }
+        return !settings.idleQuitExcluded.contains(key)
     }
 
     func setIdleQuitEnabled(_ enabled: Bool, for app: NSRunningApplication) {
-        guard let id = app.bundleIdentifier else { return }
+        guard let key = exclusionKey(for: app) else { return }
         if enabled {
-            settings.idleQuitExcluded.remove(id)
+            settings.idleQuitExcluded.remove(key)
         } else {
-            settings.idleQuitExcluded.insert(id)
+            settings.idleQuitExcluded.insert(key)
         }
     }
 }

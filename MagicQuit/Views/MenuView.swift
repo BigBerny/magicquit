@@ -15,10 +15,18 @@ struct MenuView: View {
     var body: some View {
         VStack(spacing: 0) {
             TimelineView(.periodic(from: .now, by: 1)) { context in
-                VStack(spacing: 2) {
+                let rows = VStack(spacing: 2) {
                     ForEach(sortedApps) { entry in
                         AppRowView(entry: entry, now: context.date)
                     }
+                }
+                if sortedApps.count > 12 {
+                    ScrollView {
+                        rows
+                    }
+                    .frame(height: 420)
+                } else {
+                    rows
                 }
             }
             .padding(.horizontal, 10)

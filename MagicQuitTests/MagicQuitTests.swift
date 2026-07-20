@@ -9,13 +9,17 @@ final class IdleDurationTests: XCTestCase {
         XCTAssertTrue(IdleDuration.stepsInMinutes.contains(IdleDuration.defaultMinutes))
     }
 
-    func testNearestStep() {
-        XCTAssertEqual(IdleDuration.nearestStep(toMinutes: 0), 15)
-        XCTAssertEqual(IdleDuration.nearestStep(toMinutes: 90), 60)
-        XCTAssertEqual(IdleDuration.nearestStep(toMinutes: 500), 480)
-        XCTAssertEqual(IdleDuration.nearestStep(toMinutes: 10000), 2880)
-        // 8h was the 1.x default and must map exactly
-        XCTAssertEqual(IdleDuration.nearestStep(toMinutes: 8 * 60), 480)
+    func testStepAtLeast() {
+        XCTAssertEqual(IdleDuration.stepAtLeast(minutes: 0), 15)
+        // Migration must never shorten a configured duration
+        XCTAssertEqual(IdleDuration.stepAtLeast(minutes: 90), 120)
+        XCTAssertEqual(IdleDuration.stepAtLeast(minutes: 3 * 60), 240)
+        XCTAssertEqual(IdleDuration.stepAtLeast(minutes: 500), 720)
+        // ...except beyond the largest step, which clamps
+        XCTAssertEqual(IdleDuration.stepAtLeast(minutes: 72 * 60), 2880)
+        // Exact steps map to themselves; 8h was the 1.x default
+        XCTAssertEqual(IdleDuration.stepAtLeast(minutes: 8 * 60), 480)
+        XCTAssertEqual(IdleDuration.stepAtLeast(minutes: 15), 15)
     }
 
     func testStepUpAndDown() {
@@ -104,6 +108,11 @@ final class AppSettingsTests: XCTestCase {
     func testLegacyHoursMigration() {
         defaults.set(8, forKey: "hoursUntilClose")
         XCTAssertEqual(AppSettings(defaults: defaults).idleMinutes, 480)
+
+        // Non-step values round UP so apps never quit earlier than configured
+        defaults.set(3, forKey: "hoursUntilClose")
+        defaults.removeObject(forKey: "idleMinutes")
+        XCTAssertEqual(AppSettings(defaults: defaults).idleMinutes, 240)
 
         defaults.set(72, forKey: "hoursUntilClose")
         defaults.removeObject(forKey: "idleMinutes")

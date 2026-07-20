@@ -54,7 +54,7 @@ final class AppSettings: ObservableObject {
         if let minutes = defaults.object(forKey: Keys.idleMinutes) as? Int {
             idleMinutes = minutes
         } else if let hours = defaults.object(forKey: Keys.legacyHours) as? Int {
-            idleMinutes = IdleDuration.nearestStep(toMinutes: hours * 60)
+            idleMinutes = IdleDuration.stepAtLeast(minutes: hours * 60)
         } else {
             idleMinutes = IdleDuration.defaultMinutes
         }

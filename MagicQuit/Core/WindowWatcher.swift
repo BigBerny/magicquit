@@ -39,6 +39,8 @@ final class WindowWatcher {
     }
 
     /// Reconcile watches with the desired state; called from the manager's sweep and on setting changes.
+    /// Also retries apps whose registration failed earlier (no Watch entry yet) and
+    /// re-scans watches that have not seen a window so far.
     func refresh(apps: [NSRunningApplication]) {
         guard active else {
             for pid in Array(watches.keys) {
@@ -49,19 +51,31 @@ final class WindowWatcher {
         for app in apps {
             watch(app)
         }
+        let refcon = Unmanaged.passUnretained(self).toOpaque()
+        for (pid, watch) in watches where !watch.hadWindows {
+            let windows = Self.windowList(of: watch.element)
+            guard !windows.isEmpty else { continue }
+            for window in windows {
+                AXObserverAddNotification(watch.observer, window, kAXUIElementDestroyedNotification as CFString, refcon)
+            }
+            watches[pid]?.hadWindows = true
+        }
     }
 
     func watch(_ app: NSRunningApplication) {
         guard active else { return }
         let pid = app.processIdentifier
-        guard watches[pid] == nil, pid > 0 else { return }
+        // No entry is stored unless registration succeeds, so failed attempts
+        // (e.g. the app's AX server not being ready during launch) are retried
+        // by the next refresh().
+        guard watches[pid] == nil, pid > 0, app.isFinishedLaunching else { return }
 
         var observer: AXObserver?
         guard AXObserverCreate(pid, windowWatcherCallback, &observer) == .success, let observer else { return }
 
         let element = AXUIElementCreateApplication(pid)
         let refcon = Unmanaged.passUnretained(self).toOpaque()
-        AXObserverAddNotification(observer, element, kAXWindowCreatedNotification as CFString, refcon)
+        guard AXObserverAddNotification(observer, element, kAXWindowCreatedNotification as CFString, refcon) == .success else { return }
         CFRunLoopAddSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(observer), .defaultMode)
 
         let windows = Self.windowList(of: element)
@@ -109,9 +123,17 @@ final class WindowWatcher {
             unwatch(pid)
             return
         }
-        if let id = app.bundleIdentifier, settings.windowQuitExcluded.contains(id) { return }
+        // The menu checkbox means "never quit this app" — it protects against
+        // both quit mechanisms, matching what it meant in 1.x.
+        if let key = app.bundleIdentifier ?? app.executableURL?.path,
+           settings.windowQuitExcluded.contains(key) || settings.idleQuitExcluded.contains(key) { return }
         guard app.isFinishedLaunching else { return }
+        // Splash screens and staged launches: never window-quit a freshly launched app.
+        if let launched = app.launchDate, Date().timeIntervalSince(launched) < 30 { return }
         guard Self.windowList(of: watch.element).isEmpty else { return }
+        // AX does not report windows on inactive Spaces (incl. full-screen windows);
+        // cross-check with CGWindowList, which sees all Spaces, before quitting.
+        guard Self.cgWindowCount(pid: pid) == 0 else { return }
 
         log.debug("Last window closed: \(app.localizedName ?? "unknown", privacy: .public)")
         terminateHandler?(app)
@@ -122,6 +144,13 @@ final class WindowWatcher {
         guard AXUIElementCopyAttributeValue(element, kAXWindowsAttribute as CFString, &value) == .success,
               let value, CFGetTypeID(value) == CFArrayGetTypeID() else { return [] }
         return (value as! [AXUIElement])
+    }
+
+    private static func cgWindowCount(pid: pid_t) -> Int {
+        guard let list = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] else { return 0 }
+        return list.count {
+            ($0[kCGWindowOwnerPID as String] as? pid_t) == pid && (($0[kCGWindowLayer as String] as? Int) ?? 0) == 0
+        }
     }
 }
 
