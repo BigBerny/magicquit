@@ -18,7 +18,9 @@ final class RunningAppsManager: ObservableObject {
 
     private var sweepTimer: Timer?
     private var observerTokens: [NSObjectProtocol] = []
-    private var sleepStarted: Date?
+    private var distributedTokens: [NSObjectProtocol] = []
+    /// Set while the machine is asleep or the screen is locked; that time is not counted as idle.
+    private var pauseStarted: Date?
     private var cancellables: Set<AnyCancellable> = []
     private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.MagicQuit", category: "RunningAppsManager")
 
@@ -44,10 +46,18 @@ final class RunningAppsManager: ObservableObject {
         observeApp(NSWorkspace.didTerminateApplicationNotification) { [weak self] app in self?.untrack(app) }
 
         observerTokens.append(center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { _ in
-            Task { @MainActor [weak self] in self?.sleepStarted = Date() }
+            Task { @MainActor [weak self] in self?.pauseTimers() }
         })
         observerTokens.append(center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { _ in
-            Task { @MainActor [weak self] in self?.creditSleepTime() }
+            Task { @MainActor [weak self] in self?.creditPausedTime() }
+        })
+
+        let distributed = DistributedNotificationCenter.default()
+        distributedTokens.append(distributed.addObserver(forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main) { _ in
+            Task { @MainActor [weak self] in self?.pauseTimers() }
+        })
+        distributedTokens.append(distributed.addObserver(forName: Notification.Name("com.apple.screenIsUnlocked"), object: nil, queue: .main) { _ in
+            Task { @MainActor [weak self] in self?.creditPausedTime() }
         })
 
         sweepTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { _ in
@@ -70,6 +80,10 @@ final class RunningAppsManager: ObservableObject {
         let center = NSWorkspace.shared.notificationCenter
         for token in observerTokens {
             center.removeObserver(token)
+        }
+        let distributed = DistributedNotificationCenter.default()
+        for token in distributedTokens {
+            distributed.removeObserver(token)
         }
     }
 
@@ -116,14 +130,20 @@ final class RunningAppsManager: ObservableObject {
         }
     }
 
-    private func creditSleepTime() {
-        guard let start = sleepStarted else { return }
-        sleepStarted = nil
-        let slept = Date().timeIntervalSince(start)
-        guard slept > 0 else { return }
+    private func pauseTimers() {
+        if pauseStarted == nil {
+            pauseStarted = Date()
+        }
+    }
+
+    private func creditPausedTime() {
+        guard let start = pauseStarted else { return }
+        pauseStarted = nil
+        let paused = Date().timeIntervalSince(start)
+        guard paused > 0 else { return }
         let now = Date()
         for pid in tracked.keys {
-            if let shifted = tracked[pid]?.lastActive.addingTimeInterval(slept) {
+            if let shifted = tracked[pid]?.lastActive.addingTimeInterval(paused) {
                 tracked[pid]?.lastActive = min(shifted, now)
             }
         }
@@ -137,6 +157,9 @@ final class RunningAppsManager: ObservableObject {
             touch(frontmost)
         }
         windowWatcher.refresh(apps: tracked.values.map(\.app))
+
+        // Never quit while asleep/locked — paused time is credited back on unlock.
+        guard pauseStarted == nil else { return }
 
         let now = Date()
         for entry in tracked.values {

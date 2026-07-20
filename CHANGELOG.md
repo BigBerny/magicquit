@@ -3,7 +3,8 @@
 ### New
 - Quit apps when their last window closes (like on Windows), with an exclusion list. Media players are excluded by default.
 - Idle duration is now a single stepper with fixed steps from 15 minutes to 48 hours (previously whole hours only). Existing settings are migrated automatically.
-- Time spent asleep no longer counts as idle time.
+- Time spent asleep or with the screen locked no longer counts as idle time.
+- The default idle duration is 8 hours (this was already the effective 1.x default, even though parts of the old UI displayed 12 or 24).
 
 ### Improvements
 - Settings rebuilt as a native macOS settings window.

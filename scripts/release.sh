@@ -41,7 +41,8 @@ rm "$RELEASES_DIR/$ZIP"
 ditto -c -k --keepParent "$APP" "$RELEASES_DIR/$ZIP"
 
 echo "==> Generating appcast"
-generate_appcast "$RELEASES_DIR"
+generate_appcast "$RELEASES_DIR" \
+    --download-url-prefix "https://github.com/BigBerny/magicquit/releases/download/v$VERSION/"
 cp "$RELEASES_DIR/appcast.xml" appcast.xml
 
 echo "==> SHA256 for the Homebrew cask"

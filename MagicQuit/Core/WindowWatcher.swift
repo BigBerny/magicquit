@@ -14,10 +14,12 @@ final class WindowWatcher {
         let observer: AXObserver
         let element: AXUIElement
         var hadWindows: Bool
+        let generation: Int
     }
 
     private let settings: AppSettings
     private var watches: [pid_t: Watch] = [:]
+    private var nextGeneration = 0
     private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.MagicQuit", category: "WindowWatcher")
 
     /// Grace period between the destroy event and the final window-count check.
@@ -66,11 +68,13 @@ final class WindowWatcher {
         for window in windows {
             AXObserverAddNotification(observer, window, kAXUIElementDestroyedNotification as CFString, refcon)
         }
-        watches[pid] = Watch(observer: observer, element: element, hadWindows: !windows.isEmpty)
+        nextGeneration += 1
+        watches[pid] = Watch(observer: observer, element: element, hadWindows: !windows.isEmpty, generation: nextGeneration)
     }
 
     func unwatch(_ pid: pid_t) {
         guard let watch = watches.removeValue(forKey: pid) else { return }
+        AXObserverRemoveNotification(watch.observer, watch.element, kAXWindowCreatedNotification as CFString)
         CFRunLoopRemoveSource(CFRunLoopGetMain(), AXObserverGetRunLoopSource(watch.observer), .defaultMode)
     }
 
@@ -86,19 +90,21 @@ final class WindowWatcher {
                 AXObserverAddNotification(watch.observer, element, kAXUIElementDestroyedNotification as CFString, refcon)
             }
         } else if notification == (kAXUIElementDestroyedNotification as String) {
-            scheduleWindowCountCheck(pid: pid)
+            if let generation = watches[pid]?.generation {
+                scheduleWindowCountCheck(pid: pid, generation: generation)
+            }
         }
     }
 
-    private func scheduleWindowCountCheck(pid: pid_t) {
+    private func scheduleWindowCountCheck(pid: pid_t, generation: Int) {
         Task { @MainActor [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(Self.quitDelay * 1_000_000_000))
-            self?.checkWindowCount(pid: pid)
+            self?.checkWindowCount(pid: pid, generation: generation)
         }
     }
 
-    private func checkWindowCount(pid: pid_t) {
-        guard active, let watch = watches[pid], watch.hadWindows else { return }
+    private func checkWindowCount(pid: pid_t, generation: Int) {
+        guard active, let watch = watches[pid], watch.generation == generation, watch.hadWindows else { return }
         guard let app = NSRunningApplication(processIdentifier: pid), !app.isTerminated else {
             unwatch(pid)
             return

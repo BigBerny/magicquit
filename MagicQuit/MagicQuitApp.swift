@@ -35,5 +35,6 @@ struct MagicQuitApp: App {
                 .environmentObject(manager)
                 .environmentObject(settings)
         }
+        .windowResizability(.contentSize)
     }
 }

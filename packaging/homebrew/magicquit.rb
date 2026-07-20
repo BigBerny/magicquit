@@ -10,7 +10,7 @@ cask "magicquit" do
   homepage "https://github.com/BigBerny/magicquit"
 
   livecheck do
-    url :url
+    url "https://github.com/BigBerny/magicquit"
     strategy :github_latest
   end
 
