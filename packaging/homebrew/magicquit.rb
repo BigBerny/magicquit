@@ -2,7 +2,7 @@
 # Update version + sha256 after each release (scripts/release.sh prints the sha).
 cask "magicquit" do
   version "2.0"
-  sha256 "REPLACE_WITH_SHA256_FROM_RELEASE_SCRIPT"
+  sha256 "eb7a42caa1318d977750d3421bbc13a34bc0694f35aeb3d010ec190dd6e0553f"
 
   url "https://github.com/BigBerny/magicquit/releases/download/v#{version}/MagicQuit-#{version}.zip"
   name "MagicQuit"

@@ -1,0 +1,14 @@
+<?xml version="1.0" standalone="yes"?>
+<rss xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" version="2.0">
+    <channel>
+        <title>MagicQuit</title>
+        <item>
+            <title>2.0</title>
+            <pubDate>Mon, 20 Jul 2026 17:09:41 +0200</pubDate>
+            <sparkle:version>16</sparkle:version>
+            <sparkle:shortVersionString>2.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
+            <enclosure url="https://github.com/BigBerny/magicquit/releases/download/v2.0/MagicQuit-2.0.zip" length="2834274" type="application/octet-stream" sparkle:edSignature="13LXVPkTGQe1RtTvsPk8mnyX2BCN3oemEC55WWe2ugs/RaqzYpNjFVmjHG/5bWOC1BegXUFgo0cNMd82IhL6AQ=="/>
+        </item>
+    </channel>
+</rss>
