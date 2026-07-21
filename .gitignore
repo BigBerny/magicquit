@@ -59,3 +59,6 @@ fastlane/test_output
 
 # Code Injection
 injected_container.swift
+
+# Local working notes (not part of the public repo)
+IDEAS.md

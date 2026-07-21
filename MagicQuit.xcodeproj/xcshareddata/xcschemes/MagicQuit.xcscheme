@@ -40,17 +40,6 @@
                ReferencedContainer = "container:MagicQuit.xcodeproj">
             </BuildableReference>
          </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "251773412A4F80980047DDA5"
-               BuildableName = "MagicQuitUITests.xctest"
-               BlueprintName = "MagicQuitUITests"
-               ReferencedContainer = "container:MagicQuit.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

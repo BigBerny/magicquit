@@ -1,14 +1,15 @@
 {
+  "originHash" : "e721da7f9826abdffcb6185e886155efa2514bd6234475f1afa893e29eb258d6",
   "pins" : [
     {
-      "identity" : "launchatlogin-modern",
+      "identity" : "sparkle",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/sindresorhus/LaunchAtLogin-Modern",
+      "location" : "https://github.com/sparkle-project/Sparkle",
       "state" : {
-        "branch" : "main",
-        "revision" : "a04ec1c363be3627734f6dad757d82f5d4fa8fcc"
+        "revision" : "b6496a74a087257ef5e6da1c5b29a447a60f5bd7",
+        "version" : "2.9.4"
       }
     }
   ],
-  "version" : 2
+  "version" : 3
 }

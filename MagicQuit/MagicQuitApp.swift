@@ -1,20 +1,23 @@
-//
-//  MagicQuitApp.swift
-//  MagicQuit
-//
-//  Created by Janis Berneker on 30.06.23.
-//
-
 import SwiftUI
 import AppKit
 
-let runningAppsManager = RunningAppsManager()
-
 @main
 struct MagicQuitApp: App {
+    @StateObject private var settings: AppSettings
+    @StateObject private var manager: RunningAppsManager
+
+    init() {
+        let settings = AppSettings()
+        _settings = StateObject(wrappedValue: settings)
+        _manager = StateObject(wrappedValue: RunningAppsManager(settings: settings))
+        _ = UpdaterSupport.controller
+    }
+
     var body: some Scene {
         MenuBarExtra {
-            ContentView(manager: runningAppsManager)
+            MenuView()
+                .environmentObject(manager)
+                .environmentObject(settings)
         } label: {
             let image: NSImage = {
                 $0.size.height = 18
@@ -26,5 +29,12 @@ struct MagicQuitApp: App {
             Image(nsImage: image)
         }
         .menuBarExtraStyle(.window)
+
+        Settings {
+            SettingsView()
+                .environmentObject(manager)
+                .environmentObject(settings)
+        }
+        .windowResizability(.contentSize)
     }
 }
