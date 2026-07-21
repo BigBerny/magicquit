@@ -52,13 +52,20 @@ final class WindowWatcher {
             watch(app)
         }
         let refcon = Unmanaged.passUnretained(self).toOpaque()
-        for (pid, watch) in watches where !watch.hadWindows {
+        for (pid, watch) in watches {
             let windows = Self.windowList(of: watch.element)
-            guard !windows.isEmpty else { continue }
-            for window in windows {
-                AXObserverAddNotification(watch.observer, window, kAXUIElementDestroyedNotification as CFString, refcon)
+            if watch.hadWindows {
+                // Self-healing fallback: if the destroyed event was missed for any
+                // reason, the periodic sweep still notices the app went windowless.
+                if windows.isEmpty {
+                    scheduleWindowCountCheck(pid: pid, generation: watch.generation)
+                }
+            } else if !windows.isEmpty {
+                for window in windows {
+                    AXObserverAddNotification(watch.observer, window, kAXUIElementDestroyedNotification as CFString, refcon)
+                }
+                watches[pid]?.hadWindows = true
             }
-            watches[pid]?.hadWindows = true
         }
     }
 
@@ -123,19 +130,34 @@ final class WindowWatcher {
             unwatch(pid)
             return
         }
+        let name = app.localizedName ?? "unknown"
         // The menu checkbox means "never quit this app" — it protects against
         // both quit mechanisms, matching what it meant in 1.x.
         if let key = app.bundleIdentifier ?? app.executableURL?.path,
-           settings.windowQuitExcluded.contains(key) || settings.idleQuitExcluded.contains(key) { return }
+           settings.windowQuitExcluded.contains(key) || settings.idleQuitExcluded.contains(key) {
+            log.debug("windowCheck \(name, privacy: .public): excluded")
+            return
+        }
         guard app.isFinishedLaunching else { return }
         // Splash screens and staged launches: never window-quit a freshly launched app.
-        if let launched = app.launchDate, Date().timeIntervalSince(launched) < 30 { return }
-        guard Self.windowList(of: watch.element).isEmpty else { return }
+        if let launched = app.launchDate, Date().timeIntervalSince(launched) < 30 {
+            log.debug("windowCheck \(name, privacy: .public): too young")
+            return
+        }
+        let axCount = Self.windowList(of: watch.element).count
+        guard axCount == 0 else {
+            log.debug("windowCheck \(name, privacy: .public): \(axCount) AX windows")
+            return
+        }
         // AX does not report windows on inactive Spaces (incl. full-screen windows);
         // cross-check with CGWindowList, which sees all Spaces, before quitting.
-        guard Self.cgWindowCount(pid: pid) == 0 else { return }
+        let cgCount = Self.cgWindowCount(pid: pid)
+        guard cgCount == 0 else {
+            log.debug("windowCheck \(name, privacy: .public): \(cgCount) CG windows")
+            return
+        }
 
-        log.debug("Last window closed: \(app.localizedName ?? "unknown", privacy: .public)")
+        log.debug("Last window closed: \(name, privacy: .public)")
         terminateHandler?(app)
     }
 
@@ -146,10 +168,21 @@ final class WindowWatcher {
         return (value as! [AXUIElement])
     }
 
+    /// Counts real windows only: on-screen, or off-screen with substantial bounds
+    /// and visible alpha (windows on other Spaces and minimized windows keep both).
+    /// Tiny/transparent off-screen helper windows some apps keep alive must not
+    /// block quitting.
     private static func cgWindowCount(pid: pid_t) -> Int {
         guard let list = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] else { return 0 }
-        return list.count {
-            ($0[kCGWindowOwnerPID as String] as? pid_t) == pid && (($0[kCGWindowLayer as String] as? Int) ?? 0) == 0
+        return list.count { info in
+            guard (info[kCGWindowOwnerPID as String] as? pid_t) == pid,
+                  ((info[kCGWindowLayer as String] as? Int) ?? 0) == 0 else { return false }
+            if (info[kCGWindowIsOnscreen as String] as? Bool) == true { return true }
+            let alpha = (info[kCGWindowAlpha as String] as? Double) ?? 0
+            let bounds = (info[kCGWindowBounds as String] as? [String: Double]) ?? [:]
+            let width = bounds["Width"] ?? 0
+            let height = bounds["Height"] ?? 0
+            return alpha > 0 && width >= 64 && height >= 64
         }
     }
 }
