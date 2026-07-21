@@ -65,6 +65,10 @@ class RunningAppsManager: ObservableObject {
             toggleStatusData = data
         }
     }
+
+    func isQuitEnabled(for app: NSRunningApplication) -> Bool {
+        toggleStatus[app.localizedName ?? ""] ?? false
+    }
     
     private func isBlockedApp(_ app: NSRunningApplication) -> Bool {
         let currentAppBundleIdentifier = Bundle.main.bundleIdentifier
@@ -127,7 +131,7 @@ class RunningAppsManager: ObservableObject {
         let hourInSeconds = 3600
         for (app, startDate) in runningApps {
             let elapsedTime = currentDate.timeIntervalSince(startDate)
-            if elapsedTime > Double(hoursUntilClose * hourInSeconds), app.isFinishedLaunching, toggleStatus[app.localizedName ?? ""] ?? true {
+            if elapsedTime > Double(hoursUntilClose * hourInSeconds), app.isFinishedLaunching, isQuitEnabled(for: app) {
                 let isTerminated = app.terminate()
                 if isTerminated {
                     runningApps[app] = nil
@@ -251,7 +255,7 @@ struct AppRow: View {
     
     var shouldQuitCheckbox: Binding<Bool> {
         Binding<Bool>(
-            get: { manager.toggleStatus[app.key.localizedName ?? ""] ?? true },
+            get: { manager.isQuitEnabled(for: app.key) },
             set: { newValue in
                 manager.toggleStatus[app.key.localizedName ?? ""] = newValue
                 manager.saveToggleStatus() // Save the status each time it changes
