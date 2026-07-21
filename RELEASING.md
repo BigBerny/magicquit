@@ -1,8 +1,8 @@
 # Releasing MagicQuit
 
-Releases are built on the MacBook (the only machine with the Apple Developer account). One-time setup, then a single script per release.
+One-time setup on the release machine, then a single script per release.
 
-## One-time setup (MacBook)
+## One-time setup
 
 1. **Developer ID certificate** — make sure a "Developer ID Application" certificate for team `4HMNGH59W8` is in the keychain (Xcode → Settings → Accounts → Manage Certificates).
 
