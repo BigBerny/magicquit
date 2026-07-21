@@ -36,6 +36,12 @@ struct MenuView: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
 
+            if settings.quitOnLastWindowClosed && !WindowWatcher.isTrusted {
+                MenuActionButton(title: "Grant Accessibility Access…") {
+                    WindowWatcher.promptForAccess()
+                    NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!)
+                }
+            }
             MenuActionButton(title: "Settings…") {
                 openSettings()
                 NSApp.activate(ignoringOtherApps: true)

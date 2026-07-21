@@ -1,3 +1,10 @@
+## Version 2.0.1 - 2026-07-21
+
+### Bug Fixes
+- Quit-on-last-window-closed could silently never fire: invisible helper windows blocked the window count check, and a missed close event was never retried. The periodic sweep now re-checks windowless apps, and only real windows count.
+- The menu now offers "Grant Accessibility Access" when the window-close feature is enabled but the permission is missing.
+- Diagnostics: `log stream --predicate 'subsystem == "com.MagicQuit"' --level debug` shows watcher state and every quit decision.
+
 ## Version 2.0 - 2026-07-20
 
 ### New

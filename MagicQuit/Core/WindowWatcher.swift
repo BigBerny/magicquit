@@ -20,6 +20,7 @@ final class WindowWatcher {
     private let settings: AppSettings
     private var watches: [pid_t: Watch] = [:]
     private var nextGeneration = 0
+    private var loggedActive: Bool?
     private let log = Logger(subsystem: Bundle.main.bundleIdentifier ?? "com.MagicQuit", category: "WindowWatcher")
 
     /// Grace period between the destroy event and the final window-count check.
@@ -42,7 +43,12 @@ final class WindowWatcher {
     /// Also retries apps whose registration failed earlier (no Watch entry yet) and
     /// re-scans watches that have not seen a window so far.
     func refresh(apps: [NSRunningApplication]) {
-        guard active else {
+        let isActive = active
+        if loggedActive != isActive {
+            loggedActive = isActive
+            log.info("window-close watcher \(isActive ? "active" : "inactive", privacy: .public) (setting \(self.settings.quitOnLastWindowClosed ? "on" : "off", privacy: .public), accessibility \(Self.isTrusted ? "granted" : "missing", privacy: .public))")
+        }
+        guard isActive else {
             for pid in Array(watches.keys) {
                 unwatch(pid)
             }
@@ -157,7 +163,7 @@ final class WindowWatcher {
             return
         }
 
-        log.debug("Last window closed: \(name, privacy: .public)")
+        log.info("Last window closed: \(name, privacy: .public)")
         terminateHandler?(app)
     }
 
