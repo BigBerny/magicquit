@@ -80,6 +80,28 @@ final class QuitPolicyTests: XCTestCase {
     }
 }
 
+final class MenuBarIconProviderTests: XCTestCase {
+    func testAssetTakesPrecedenceAndIsConfiguredAsTemplate() {
+        let asset = NSImage(size: NSSize(width: 32, height: 32))
+        let fallback = NSImage(size: NSSize(width: 16, height: 16))
+
+        let image = MenuBarIconProvider.configuredImage(asset: asset, fallback: fallback)
+
+        XCTAssertEqual(image?.size, NSSize(width: 18, height: 18))
+        XCTAssertEqual(image?.isTemplate, true)
+        XCTAssertEqual(asset.size, NSSize(width: 32, height: 32))
+    }
+
+    func testFallbackIsUsedWhenAssetIsMissing() {
+        let fallback = NSImage(size: NSSize(width: 16, height: 16))
+        XCTAssertNotNil(MenuBarIconProvider.configuredImage(asset: nil, fallback: fallback))
+    }
+
+    func testMissingImagesReturnNilForTextFallback() {
+        XCTAssertNil(MenuBarIconProvider.configuredImage(asset: nil, fallback: nil))
+    }
+}
+
 @MainActor
 final class AppSettingsTests: XCTestCase {
     private var defaults: UserDefaults!
