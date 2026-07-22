@@ -15,10 +15,18 @@ struct AppRowView: View {
         )
     }
 
+    private var idleDurationSelection: Binding<Int> {
+        Binding(
+            get: { manager.idleMinutesOverride(for: entry.app) ?? 0 },
+            set: { manager.setIdleMinutesOverride($0 == 0 ? nil : $0, for: entry.app) }
+        )
+    }
+
     var body: some View {
-        let remaining = QuitPolicy.remainingSeconds(lastActive: entry.lastActive, now: now, idleMinutes: settings.idleMinutes)
+        let idleMinutes = manager.idleMinutes(for: entry.app)
+        let remaining = QuitPolicy.remainingSeconds(lastActive: entry.lastActive, now: now, idleMinutes: idleMinutes)
         // Relative threshold so short idle durations are not permanently "closing soon"
-        let closingSoon = remaining < min(3600, settings.idleMinutes * 15) && isEnabled.wrappedValue
+        let closingSoon = remaining < min(3600, idleMinutes * 15) && isEnabled.wrappedValue
 
         HStack(spacing: 8) {
             Toggle("", isOn: isEnabled)
@@ -45,6 +53,17 @@ struct AppRowView: View {
                     .fontWeight(closingSoon ? .semibold : .regular)
                     .foregroundStyle(closingSoon ? Color.primary : Color.secondary)
             }
+
+            Picker("Idle duration", selection: idleDurationSelection) {
+                Text("Default").tag(0)
+                ForEach(IdleDuration.stepsInMinutes, id: \.self) { minutes in
+                    Text(IdleDuration.label(minutes: minutes)).tag(minutes)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.menu)
+            .frame(width: 82)
+            .help("Idle duration for \(entry.app.localizedName ?? "this app")")
 
             Button {
                 manager.resetTimer(for: entry.id)
