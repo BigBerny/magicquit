@@ -96,6 +96,7 @@ final class RunningAppsManager: ObservableObject {
                                      activationPolicy: app.activationPolicy,
                                      ownBundleId: Bundle.main.bundleIdentifier) else { return }
         settings.migrateLegacyToggleIfNeeded(appName: app.localizedName, bundleId: app.bundleIdentifier)
+        settings.migrateLegacyIdleDurationIfNeeded(appName: app.localizedName, bundleId: app.bundleIdentifier)
         if tracked[app.processIdentifier] == nil {
             tracked[app.processIdentifier] = TrackedApp(app: app, lastActive: Date())
         }
@@ -165,9 +166,10 @@ final class RunningAppsManager: ObservableObject {
 
         let now = Date()
         for entry in tracked.values {
+            let idleMinutes = idleMinutes(for: entry.app)
             guard entry.app.isFinishedLaunching,
                   isIdleQuitEnabled(entry.app),
-                  QuitPolicy.idleQuitDue(lastActive: entry.lastActive, now: now, idleMinutes: settings.idleMinutes)
+                  QuitPolicy.idleQuitDue(lastActive: entry.lastActive, now: now, idleMinutes: idleMinutes)
             else { continue }
             quit(entry.app)
         }
@@ -181,7 +183,13 @@ final class RunningAppsManager: ObservableObject {
         dueTimer = nil
         let soonest = tracked.values
             .filter { isIdleQuitEnabled($0.app) }
-            .map { QuitPolicy.remainingSeconds(lastActive: $0.lastActive, now: now, idleMinutes: settings.idleMinutes) }
+            .map {
+                QuitPolicy.remainingSeconds(
+                    lastActive: $0.lastActive,
+                    now: now,
+                    idleMinutes: idleMinutes(for: $0.app)
+                )
+            }
             .min()
         guard let soonest, soonest > 0, soonest < 30 else { return }
         dueTimer = Timer.scheduledTimer(withTimeInterval: TimeInterval(soonest) + 1, repeats: false) { _ in
@@ -221,8 +229,22 @@ final class RunningAppsManager: ObservableObject {
         guard let key = exclusionKey(for: app) else { return }
         if enabled {
             settings.idleQuitExcluded.remove(key)
+            resetTimer(for: app.processIdentifier)
         } else {
             settings.idleQuitExcluded.insert(key)
         }
+    }
+
+    func idleMinutes(for app: NSRunningApplication) -> Int {
+        settings.idleMinutes(forAppKey: exclusionKey(for: app))
+    }
+
+    func idleMinutesOverride(for app: NSRunningApplication) -> Int? {
+        settings.idleMinutesOverride(forAppKey: exclusionKey(for: app))
+    }
+
+    func setIdleMinutesOverride(_ minutes: Int?, for app: NSRunningApplication) {
+        settings.setIdleMinutesOverride(minutes, forAppKey: exclusionKey(for: app))
+        resetTimer(for: app.processIdentifier)
     }
 }

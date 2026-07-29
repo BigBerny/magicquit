@@ -103,6 +103,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertFalse(settings.quitOnLastWindowClosed)
         XCTAssertTrue(settings.idleQuitExcluded.isEmpty)
         XCTAssertEqual(settings.windowQuitExcluded, AppSettings.defaultWindowQuitExcluded)
+        XCTAssertTrue(settings.perAppIdleMinutes.isEmpty)
     }
 
     func testLegacyHoursMigration() {
@@ -158,6 +159,36 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertTrue(reloaded.windowQuitExcluded.contains("com.example.tool"))
         XCTAssertEqual(reloaded.idleMinutes, 120)
         XCTAssertTrue(reloaded.quitOnLastWindowClosed)
+    }
+
+    func testPerAppIdleDurationPersistenceRoundtrip() {
+        let settings = AppSettings(defaults: defaults)
+        settings.setIdleMinutesOverride(120, forAppKey: "com.apple.Safari")
+
+        let reloaded = AppSettings(defaults: defaults)
+        XCTAssertEqual(reloaded.idleMinutes(forAppKey: "com.apple.Safari"), 120)
+        XCTAssertEqual(reloaded.idleMinutesOverride(forAppKey: "com.apple.Safari"), 120)
+        XCTAssertEqual(reloaded.idleMinutes(forAppKey: "com.apple.mail"), IdleDuration.defaultMinutes)
+
+        reloaded.setIdleMinutesOverride(nil, forAppKey: "com.apple.Safari")
+        XCTAssertNil(AppSettings(defaults: defaults).idleMinutesOverride(forAppKey: "com.apple.Safari"))
+    }
+
+    func testPerAppIdleDurationRoundsUpToSupportedStep() {
+        let settings = AppSettings(defaults: defaults)
+        settings.setIdleMinutesOverride(90, forAppKey: "com.apple.Safari")
+        XCTAssertEqual(settings.idleMinutesOverride(forAppKey: "com.apple.Safari"), 120)
+    }
+
+    func testLegacyPerAppIdleHoursMigration() throws {
+        let legacy = ["Safari": 3]
+        defaults.set(try JSONEncoder().encode(legacy), forKey: "com.MagicQuit.appIdleHours")
+
+        let settings = AppSettings(defaults: defaults)
+        settings.migrateLegacyIdleDurationIfNeeded(appName: "Safari", bundleId: "com.apple.Safari")
+
+        XCTAssertEqual(settings.idleMinutesOverride(forAppKey: "com.apple.Safari"), 240)
+        XCTAssertNil(defaults.data(forKey: "com.MagicQuit.appIdleHours"))
     }
 
     func testEmptiedWindowExclusionsStayEmpty() {
