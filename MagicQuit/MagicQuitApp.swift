@@ -19,14 +19,7 @@ struct MagicQuitApp: App {
                 .environmentObject(manager)
                 .environmentObject(settings)
         } label: {
-            let image: NSImage = {
-                $0.size.height = 18
-                $0.size.width = 18
-                $0.isTemplate = true
-                return $0
-            }(NSImage(named: "MenuBarIcon")!)
-
-            Image(nsImage: image)
+            MenuBarIconLabel()
         }
         .menuBarExtraStyle(.window)
 
@@ -36,5 +29,29 @@ struct MagicQuitApp: App {
                 .environmentObject(settings)
         }
         .windowResizability(.contentSize)
+    }
+}
+
+struct MenuBarIconLabel: View {
+    var body: some View {
+        if let image = MenuBarIconProvider.configuredImage(
+            asset: NSImage(named: "MenuBarIcon"),
+            fallback: NSImage(systemSymbolName: "hourglass", accessibilityDescription: "MagicQuit")
+        ) {
+            Image(nsImage: image)
+        } else {
+            Text("MQ")
+                .accessibilityLabel("MagicQuit")
+        }
+    }
+}
+
+enum MenuBarIconProvider {
+    static func configuredImage(asset: NSImage?, fallback: NSImage?) -> NSImage? {
+        guard let source = asset ?? fallback,
+              let image = source.copy() as? NSImage else { return nil }
+        image.size = NSSize(width: 18, height: 18)
+        image.isTemplate = true
+        return image
     }
 }
