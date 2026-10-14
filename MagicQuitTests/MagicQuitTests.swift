@@ -101,6 +101,7 @@ final class AppSettingsTests: XCTestCase {
         XCTAssertEqual(settings.idleMinutes, IdleDuration.defaultMinutes)
         XCTAssertFalse(settings.showQuitButton)
         XCTAssertFalse(settings.quitOnLastWindowClosed)
+        XCTAssertTrue(settings.confirmBeforeAutoQuit)
         XCTAssertTrue(settings.idleQuitExcluded.isEmpty)
         XCTAssertEqual(settings.windowQuitExcluded, AppSettings.defaultWindowQuitExcluded)
     }
@@ -152,12 +153,14 @@ final class AppSettingsTests: XCTestCase {
         settings.windowQuitExcluded.insert("com.example.tool")
         settings.idleMinutes = 120
         settings.quitOnLastWindowClosed = true
+        settings.confirmBeforeAutoQuit = false
 
         let reloaded = AppSettings(defaults: defaults)
         XCTAssertTrue(reloaded.idleQuitExcluded.contains("com.apple.Safari"))
         XCTAssertTrue(reloaded.windowQuitExcluded.contains("com.example.tool"))
         XCTAssertEqual(reloaded.idleMinutes, 120)
         XCTAssertTrue(reloaded.quitOnLastWindowClosed)
+        XCTAssertFalse(reloaded.confirmBeforeAutoQuit)
     }
 
     func testEmptiedWindowExclusionsStayEmpty() {

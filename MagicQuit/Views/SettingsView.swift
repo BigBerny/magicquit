@@ -82,6 +82,17 @@ struct SettingsView: View {
                 SettingsDivider()
 
                 SettingRow(
+                    icon: "timer",
+                    title: "Confirm before quitting",
+                    detail: "Show a 20-second countdown banner with a Cancel button before automatic quits."
+                ) {
+                    Toggle("", isOn: $settings.confirmBeforeAutoQuit)
+                        .labelsHidden()
+                }
+
+                SettingsDivider()
+
+                SettingRow(
                     icon: "xmark.circle",
                     title: "Show quit buttons",
                     detail: "Add a manual quit action beside every app in the menu."

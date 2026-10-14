@@ -8,6 +8,7 @@ final class AppSettings: ObservableObject {
         static let idleMinutes = "idleMinutes"
         static let showQuitButton = "showCloseButton" // key kept from 1.x
         static let quitOnLastWindowClosed = "quitOnLastWindowClosed"
+        static let confirmBeforeAutoQuit = "confirmBeforeAutoQuit"
         static let idleQuitExcluded = "idleQuitExcludedApps"
         static let windowQuitExcluded = "windowQuitExcludedApps"
         static let legacyHours = "hoursUntilClose"
@@ -33,6 +34,11 @@ final class AppSettings: ObservableObject {
 
     @Published var quitOnLastWindowClosed: Bool {
         didSet { defaults.set(quitOnLastWindowClosed, forKey: Keys.quitOnLastWindowClosed) }
+    }
+
+    /// When enabled, automatic quits show a 20-second countdown banner with Cancel.
+    @Published var confirmBeforeAutoQuit: Bool {
+        didSet { defaults.set(confirmBeforeAutoQuit, forKey: Keys.confirmBeforeAutoQuit) }
     }
 
     /// Bundle identifiers excluded from idle quitting (menu checkboxes).
@@ -61,6 +67,7 @@ final class AppSettings: ObservableObject {
 
         showQuitButton = defaults.bool(forKey: Keys.showQuitButton)
         quitOnLastWindowClosed = defaults.bool(forKey: Keys.quitOnLastWindowClosed)
+        confirmBeforeAutoQuit = defaults.object(forKey: Keys.confirmBeforeAutoQuit) as? Bool ?? true
         idleQuitExcluded = Set(defaults.stringArray(forKey: Keys.idleQuitExcluded) ?? [])
 
         if let stored = defaults.stringArray(forKey: Keys.windowQuitExcluded) {

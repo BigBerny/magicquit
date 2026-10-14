@@ -1,3 +1,8 @@
+## Unreleased
+
+### New
+- Before an automatic quit (idle or last-window-close), a floating banner counts down for 20 seconds with a Cancel button — clicking Cancel keeps the app open. Repeated cancels for the same app silence it for 5 minutes. Manual ✕ buttons stay instant.
+
 ## Version 2.0.1 - 2026-07-21
 
 ### Bug Fixes
