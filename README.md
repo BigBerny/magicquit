@@ -34,6 +34,10 @@ Requires macOS 14 or later.
 - The ↩ button resets an app's timer.
 - Settings: idle duration, launch at login, quit-on-last-window-close with its exclusion list.
 
+### Grace period
+
+When MagicQuit decides to quit an app automatically, a small banner appears at the top of your screen with a 20-second countdown and a Cancel button. Click Cancel to keep the app open. If you cancel repeatedly for the same app, MagicQuit stops asking about it for 5 minutes. The manual ✕ quit buttons in the menu quit immediately.
+
 ### Accessibility permission
 
 The window-close feature uses the Accessibility API to count an app's windows (it is the only reliable way to also see minimized windows). macOS will ask you to grant access in **System Settings → Privacy & Security → Accessibility** the first time you enable the feature. The idle-quit feature needs no permissions.

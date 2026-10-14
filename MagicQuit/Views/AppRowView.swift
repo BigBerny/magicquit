@@ -56,7 +56,7 @@ struct AppRowView: View {
 
             if settings.showQuitButton {
                 Button {
-                    manager.quit(entry.app)
+                    manager.quitNowFromMenu(entry.app)
                 } label: {
                     Image(systemName: "xmark.circle")
                 }
